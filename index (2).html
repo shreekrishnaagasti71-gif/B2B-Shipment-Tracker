@@ -48,8 +48,6 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .branch-card.selected{background:#2563eb;border-color:#2563eb;color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.25)}
 .branch-card .branch-icon{font-size:20px;margin-bottom:4px;display:block}
 .branch-display{background:#f0f9ff;border:2px solid #2563eb;border-radius:10px;padding:14px;text-align:center;font-size:16px;font-weight:800;color:#2563eb;margin-bottom:12px}
-
-/* VAN CARDS — GREEN vs RED */
 .van-card{border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;border:2px solid}
 .van-card.green{background:#dcfce7;border-color:#16a34a;color:#14532d}
 .van-card.red{background:#fee2e2;border-color:#dc2626;color:#7f1d1d}
@@ -58,7 +56,6 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .van-title{font-size:16px;font-weight:800}
 .van-timer{font-size:24px;font-weight:800;font-family:monospace;letter-spacing:1px}
 .van-meta{font-size:12px;font-weight:600;opacity:0.8;margin-top:4px}
-
 .cam-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:2000;flex-direction:column}
 .cam-modal.active{display:flex}
 .cam-modal video{width:100%;height:calc(100% - 80px);object-fit:cover}
@@ -87,7 +84,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 <button class="reset-btn" onclick="hardReset()">🔄 Reset App</button>
 
 <div class="header">
-  <h1>NCM B2B Tracker</h1>
+  <h1>NCM B2B TRACKER</h1>
   <p>Scan · Send · Receive · Live</p>
 </div>
 <div class="toast" id="toast"></div>
@@ -152,7 +149,6 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
           <div class="branch-display" id="staffBranchDisplay">-</div>
         </div>
 
-        <!-- INCOMING VANS -->
         <div id="incomingVansSection" class="hidden mt-10">
           <h4 style="font-size:13px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">🚐 Incoming Vans</h4>
           <div id="incomingVansList"></div>
@@ -208,7 +204,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 </div>
 
 <script>
-const APP_VERSION = "v12-timer-live";
+const APP_VERSION = "v14-complete";
 let SCRIPT_URL = localStorage.getItem('ncm_url') || "";
 let currentBranch = "";
 let currentRole = "";
@@ -398,6 +394,10 @@ async function loadIncomingVans() {
   if (!branch) return;
   try {
     const res = await apiGet({ action: "getIncomingVans", branch: branch });
+    if (!res.success) {
+      toast(res.error || 'Server error', 'bad');
+      return;
+    }
     const vans = res.data || [];
     const section = document.getElementById('incomingVansSection');
     const list = document.getElementById('incomingVansList');
@@ -408,28 +408,46 @@ async function loadIncomingVans() {
     }
     section.classList.remove('hidden');
     list.innerHTML = vans.map((v, idx) => {
+      const min = safeNum(v.elapsedMinutes);
+      const sec = safeNum(v.elapsedSeconds);
       const cls = v.isLate ? 'red' : 'green';
       return `
-      <div class="van-card ${cls}" onclick="fillVanNo('${v.vanNo}')" id="van-${idx}">
+      <div class="van-card ${cls}" onclick="fillVanNo('${escapeHtml(v.vanNo)}')" id="van-${idx}">
         <div class="van-header">
-          <span class="van-title">Van ${v.vanNo} from ${v.origin}</span>
-          <span class="van-timer" id="timer-${idx}" data-min="${v.elapsedMinutes}" data-sec="${v.elapsedSeconds}">${pad(v.elapsedMinutes)}:${pad(v.elapsedSeconds)}</span>
+          <span class="van-title">Van ${escapeHtml(v.vanNo)} from ${escapeHtml(v.origin)}</span>
+          <span class="van-timer" id="timer-${idx}" data-min="${min}" data-sec="${sec}">${pad(min)}:${pad(sec)}</span>
         </div>
-        <div class="van-meta">${v.count} shipment(s) coming — Tap to select</div>
+        <div class="van-meta">${safeNum(v.count)} shipment(s) coming — Tap to select</div>
       </div>`;
     }).join('');
     startVanTimers();
-  } catch(e) {}
+  } catch(e) {
+    toast('Failed to load vans: ' + e.message, 'bad');
+  }
 }
 
-function pad(n) { return String(n).padStart(2, '0'); }
+function safeNum(v) {
+  var n = parseInt(v);
+  return isNaN(n) ? 0 : n;
+}
+
+function escapeHtml(text) {
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(text));
+  return div.innerHTML;
+}
+
+function pad(n) {
+  var num = safeNum(n);
+  return String(num).padStart(2, '0');
+}
 
 function startVanTimers() {
   if (vanTimerInterval) clearInterval(vanTimerInterval);
   vanTimerInterval = setInterval(() => {
     document.querySelectorAll('.van-timer').forEach(el => {
-      let min = parseInt(el.dataset.min) || 0;
-      let sec = parseInt(el.dataset.sec) || 0;
+      let min = safeNum(el.dataset.min);
+      let sec = safeNum(el.dataset.sec);
       sec++;
       if (sec >= 60) { sec = 0; min++; }
       el.dataset.min = min;
@@ -631,9 +649,9 @@ async function submitBatch() {
       fetchPending();
       loadIncomingVans();
     } else {
-      toast(res.error, 'bad');
+      toast(res.error || 'Receive failed', 'bad');
     }
-  } catch(e) { toast('Network error', 'bad'); }
+  } catch(e) { toast('Network error: ' + e.message, 'bad'); }
 }
 
 async function fetchPending() {
