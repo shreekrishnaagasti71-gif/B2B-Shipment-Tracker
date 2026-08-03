@@ -110,8 +110,8 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
   <div id="mainApp" class="hidden">
 
     <div class="nav-tabs">
-      <div class="nav-tab active" onclick="showTab('send')">Send</div>
-      <div class="nav-tab" onclick="showTab('receive')">Receive</div>
+      <div class="nav-tab active" onclick="showTab('send', this)">Send</div>
+      <div class="nav-tab" onclick="showTab('receive', this)">Receive</div>
     </div>
 
     <div id="sendTab">
@@ -204,7 +204,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 </div>
 
 <script>
-const APP_VERSION = "v14-complete";
+const APP_VERSION = "v15-final";
 let SCRIPT_URL = localStorage.getItem('ncm_url') || "";
 let currentBranch = "";
 let currentRole = "";
@@ -354,9 +354,9 @@ function showApp() {
   document.getElementById('originBranchDisplay').value = currentRole === 'driver' ? 'DRIVER' : currentBranch;
 }
 
-function showTab(tab) {
+function showTab(tab, el) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
+  el.classList.add('active');
   document.getElementById('sendTab').classList.toggle('hidden', tab !== 'send');
   document.getElementById('receiveTab').classList.toggle('hidden', tab !== 'receive');
   if (tab === 'receive') startVanPolling();
@@ -395,7 +395,7 @@ async function loadIncomingVans() {
   try {
     const res = await apiGet({ action: "getIncomingVans", branch: branch });
     if (!res.success) {
-      toast(res.error || 'Server error', 'bad');
+      toast(res.error || 'Server error loading vans', 'bad');
       return;
     }
     const vans = res.data || [];
