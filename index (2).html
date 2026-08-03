@@ -7,20 +7,10 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Segoe UI,Arial,sans-serif;background:#f8fafc;color:#1e293b;min-height:100vh;padding-bottom:80px}
-
-/* Header */
 .header{background:#fff;padding:16px 20px;text-align:center;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
 .header h1{font-size:20px;color:#dc2626;font-weight:800;letter-spacing:0.5px}
 .header p{font-size:11px;color:#64748b;margin-top:2px}
-
 .container{padding:15px;max-width:520px;margin:0 auto}
-
-/* Business Hours Banner */
-.hours-banner{text-align:center;padding:10px;font-size:12px;font-weight:700;border-radius:8px;margin-bottom:12px}
-.hours-banner.open{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
-.hours-banner.closed{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
-
-/* Login */
 .login-box{background:#fff;border-radius:14px;padding:28px 20px;margin-top:20px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .login-box h2{text-align:center;color:#1e293b;margin-bottom:20px;font-size:18px;font-weight:700}
 .login-box input{width:100%;padding:14px;font-size:18px;border:2px solid #e2e8f0;border-radius:10px;background:#fff;color:#1e293b;text-align:center;letter-spacing:3px;font-weight:600}
@@ -32,26 +22,18 @@ body{font-family:Segoe UI,Arial,sans-serif;background:#f8fafc;color:#1e293b;min-
 .btn-green{background:#16a34a;color:#fff}.btn-green:hover{background:#15803d}
 .btn-grey{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1}.btn-grey:hover{background:#e2e8f0}
 .btn-small{padding:8px 14px;font-size:12px;width:auto}
-
-/* Nav */
 .nav-tabs{display:flex;gap:6px;margin-bottom:15px;background:#fff;padding:4px;border-radius:10px;border:1px solid #e2e8f0}
 .nav-tab{flex:1;padding:10px;text-align:center;background:transparent;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;color:#64748b;border:none}
 .nav-tab.active{background:#dc2626;color:#fff}
-
-/* Cards */
 .card{background:#fff;border-radius:12px;padding:16px;margin-top:12px;border:1px solid #e2e8f0;box-shadow:0 1px 2px rgba(0,0,0,0.03)}
 .card h4{color:#1e293b;margin-bottom:12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
 label{display:block;color:#64748b;font-size:12px;margin-bottom:5px;font-weight:600}
 input,select{width:100%;padding:11px;font-size:15px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;color:#1e293b}
 input:focus,select:focus{outline:none;border-color:#dc2626}
 input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e2e8f0}
-
-/* Big Scan Button */
 .scan-big{width:100%;padding:28px;font-size:18px;font-weight:800;border:none;border-radius:14px;cursor:pointer;background:#16a34a;color:#fff;text-transform:uppercase;letter-spacing:0.5px;box-shadow:0 4px 14px rgba(22,163,74,0.25);display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px}
 .scan-big:hover{background:#15803d;transform:translateY(-1px)}
 .scan-big:active{transform:scale(0.98)}
-
-/* Chip area */
 .chip-box{background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;min-height:56px;margin-top:10px;position:relative}
 .chip-box:focus-within{border-color:#dc2626}
 .chip-list{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -60,23 +42,29 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .chip .x:hover{background:#dc2626}
 .chip-placeholder{color:#94a3b8;font-size:13px;font-style:italic}
 @keyframes popIn{from{transform:scale(0.8);opacity:0}to{transform:scale(1);opacity:1}}
-
-/* Branch Grid (Driver Mode) */
 .branch-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
 .branch-card{background:#fff;border:2px solid #e2e8f0;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;transition:all 0.15s;font-size:13px;font-weight:700;color:#475569}
 .branch-card:active{transform:scale(0.96)}
 .branch-card.selected{background:#2563eb;border-color:#2563eb;color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.25)}
 .branch-card .branch-icon{font-size:20px;margin-bottom:4px;display:block}
+.branch-display{background:#f0f9ff;border:2px solid #2563eb;border-radius:10px;padding:14px;text-align:center;font-size:16px;font-weight:800;color:#2563eb;margin-bottom:12px}
 
-/* Camera Modal */
+/* VAN CARDS */
+.van-card{border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;border:2px solid}
+.van-card.green{background:#dcfce7;border-color:#16a34a;color:#14532d}
+.van-card.red{background:#fee2e2;border-color:#dc2626;color:#7f1d1d}
+.van-card:active{transform:scale(0.98)}
+.van-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.van-title{font-size:16px;font-weight:800}
+.van-timer{font-size:24px;font-weight:800;font-family:monospace;letter-spacing:1px}
+.van-meta{font-size:12px;font-weight:600;opacity:0.8;margin-top:4px}
+
 .cam-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:2000;flex-direction:column}
 .cam-modal.active{display:flex}
 .cam-modal video{width:100%;height:calc(100% - 80px);object-fit:cover}
 .cam-bar{height:80px;background:#111;display:flex;align-items:center;justify-content:center;gap:20px;padding:0 20px}
 .cam-bar button{padding:12px 24px;font-size:14px;font-weight:700;border:none;border-radius:10px;cursor:pointer}
 .cam-done{background:#dc2626;color:#fff}
-
-/* Pending List */
 .pending-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .pending-count{font-size:28px;font-weight:800;color:#2563eb}
 .shipment-list{background:#fff;border-radius:10px;border:1px solid #e2e8f0;max-height:220px;overflow-y:auto}
@@ -84,21 +72,12 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .shipment-item:last-child{border-bottom:none}
 .shipment-id{font-weight:700;color:#1e293b;font-size:14px}
 .shipment-meta{font-size:11px;color:#64748b;margin-top:1px}
-
-/* Toast */
 .toast{position:fixed;top:15px;left:50%;transform:translateX(-50%);padding:14px 22px;border-radius:10px;font-weight:700;z-index:3000;display:none;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:90%;text-align:center}
 .toast.ok{background:#16a34a;color:#fff}.toast.bad{background:#dc2626;color:#fff}.toast.warn{background:#ca8a04;color:#fff}
-
-/* Status bar */
 .status-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;padding:10px 16px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;font-size:12px;z-index:100}
 .status-bar .branch{color:#dc2626;font-weight:800}
-
-/* Driver badge */
 .driver-badge{background:#2563eb;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:4px;text-transform:uppercase;margin-left:6px}
-
-/* Reset button */
 .reset-btn{position:fixed;top:10px;right:10px;z-index:500;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer}
-
 .hidden{display:none!important}
 .mt-10{margin-top:10px}.mt-15{margin-top:15px}.flex{display:flex;gap:8px}.flex-1{flex:1}
 </style>
@@ -115,7 +94,6 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 
 <div class="container">
 
-  <!-- SETUP -->
   <div class="card hidden" id="setupBox">
     <h4>First-Time Setup</h4>
     <p style="font-size:13px;color:#64748b;margin-bottom:10px">Paste your Apps Script Web App URL (ends in /exec)</p>
@@ -123,7 +101,6 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
     <button class="btn btn-blue mt-10" onclick="saveUrl()">Save & Continue</button>
   </div>
 
-  <!-- LOGIN -->
   <div id="loginScreen" class="hidden">
     <div class="login-box">
       <h2>Branch Login</h2>
@@ -133,28 +110,22 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
     </div>
   </div>
 
-  <!-- MAIN APP -->
   <div id="mainApp" class="hidden">
-    <div id="hoursBanner" class="hours-banner open">Checking hours...</div>
 
     <div class="nav-tabs">
       <div class="nav-tab active" onclick="showTab('send')">Send</div>
       <div class="nav-tab" onclick="showTab('receive')">Receive</div>
     </div>
 
-    <!-- ============ SEND TAB ============ -->
     <div id="sendTab">
       <div class="card">
         <h4>Send Shipment</h4>
         <label>Origin Branch</label>
         <input type="text" id="originBranchDisplay" readonly>
-
         <label>Destination Branch</label>
         <select id="destBranch"></select>
-
         <label>Van Number</label>
         <input type="text" id="sendVanNo" placeholder="e.g. 843">
-
         <label>Shipment IDs <span style="font-weight:400;color:#94a3b8">— scan as fast as you want</span></label>
         <div class="chip-box" onclick="document.getElementById('sendInput').focus()">
           <div class="chip-list" id="sendChipList">
@@ -167,15 +138,24 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
       <button class="btn btn-red mt-10" onclick="sendShipments()">SEND ALL (<span id="sendCount">0</span>)</button>
     </div>
 
-    <!-- ============ RECEIVE TAB ============ -->
     <div id="receiveTab" class="hidden">
       <div class="card">
         <h4>Receive Shipments</h4>
 
-        <!-- Driver branch selector -->
         <div id="driverBranchBox" class="hidden">
-          <label style="color:#2563eb">DRIVER — Select Branch</label>
+          <label style="color:#2563eb">DRIVER — Select Branch to Receive</label>
           <div class="branch-grid" id="branchGrid"></div>
+        </div>
+
+        <div id="staffBranchBox" class="hidden">
+          <label>Receiving For Branch</label>
+          <div class="branch-display" id="staffBranchDisplay">-</div>
+        </div>
+
+        <!-- INCOMING VANS -->
+        <div id="incomingVansSection" class="hidden mt-10">
+          <h4 style="font-size:13px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">🚐 Incoming Vans</h4>
+          <div id="incomingVansList"></div>
         </div>
 
         <label>Van Number</label>
@@ -183,9 +163,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
           <input type="text" id="recvVanNo" placeholder="e.g. 843" class="flex-1">
           <button class="btn btn-blue btn-small" onclick="fetchPending()">Load List</button>
         </div>
-
         <button class="scan-big" onclick="openCamera('receive')">📷 Scan Barcodes</button>
-
         <div style="margin-top:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
             <label style="margin:0">Scanned IDs <span style="font-weight:400;color:#94a3b8">— auto-sends after you pause</span></label>
@@ -198,12 +176,9 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
             <textarea id="recvInput" style="position:absolute;opacity:0;height:0;width:0;left:0;top:0" oninput="handleRecvInput(this)" onkeydown="recvKey(event)" onpaste="recvPaste(event)"></textarea>
           </div>
         </div>
-
         <button class="btn btn-grey mt-10" onclick="fetchPending()" style="padding:10px;font-size:12px">↻ Fetch Pending List from Sheet</button>
       </div>
-
       <button class="btn btn-green mt-10" id="recvBatchBtn" onclick="submitBatch()" disabled>RECEIVE ALL SCANNED (<span id="recvBtnCount">0</span>)</button>
-
       <div id="pendingSection" class="hidden mt-15">
         <div class="card">
           <div class="pending-header">
@@ -224,7 +199,6 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
   <button class="btn btn-grey btn-small" onclick="logout()">Logout</button>
 </div>
 
-<!-- CAMERA MODAL -->
 <div class="cam-modal" id="camModal">
   <video id="camVideo" autoplay playsinline muted></video>
   <canvas id="camCanvas" style="display:none"></canvas>
@@ -234,8 +208,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 </div>
 
 <script>
-// ═══════════ CONFIG ═══════════
-const APP_VERSION = "v5-driver-grid";
+const APP_VERSION = "v11-timer-fixed";
 let SCRIPT_URL = localStorage.getItem('ncm_url') || "";
 let currentBranch = "";
 let currentRole = "";
@@ -248,19 +221,16 @@ let barcodeDetector = null;
 let camStream = null;
 let isScanning = false;
 let recvTimer = null;
+let vanTimerInterval = null;
+let vanPollInterval = null;
 const RECV_AUTO_DELAY = 600;
 
-// ═══════════ INIT ═══════════
 function init() {
   const savedVersion = localStorage.getItem('ncm_version');
   if (savedVersion !== APP_VERSION) {
     localStorage.removeItem('ncm_session');
     localStorage.setItem('ncm_version', APP_VERSION);
   }
-
-  updateHoursBanner();
-  setInterval(updateHoursBanner, 60000);
-
   if (!SCRIPT_URL) {
     document.getElementById('setupBox').classList.remove('hidden');
     return;
@@ -297,26 +267,6 @@ function saveUrl() {
   toast('Saved. Please login.', 'ok');
 }
 
-// ═══════════ BUSINESS HOURS (8:00 AM - 4:00 PM Nepal Time) ═══════════
-function updateHoursBanner() {
-  const now = new Date();
-  let h = now.getUTCHours() + 5;
-  let m = now.getUTCMinutes() + 45;
-  if (m >= 60) { m -= 60; h += 1; }
-  const minutes = h * 60 + m;
-  const open = minutes >= 480 && minutes < 960;
-  const banner = document.getElementById('hoursBanner');
-  if (!banner) return;
-  if (open) {
-    banner.className = 'hours-banner open';
-    banner.innerText = 'Business hours: OPEN (8:00 AM – 4:00 PM)';
-  } else {
-    banner.className = 'hours-banner closed';
-    banner.innerText = 'Business hours: CLOSED (Opens 8:00 AM)';
-  }
-}
-
-// ═══════════ API ═══════════
 async function apiGet(params) {
   const res = await fetch(SCRIPT_URL + "?" + new URLSearchParams(params));
   return res.json();
@@ -330,7 +280,6 @@ async function apiPost(body) {
   return res.json();
 }
 
-// ═══════════ LOGIN ═══════════
 async function login() {
   const pc = document.getElementById('passcodeInput').value.trim();
   if (!pc) return toast('Enter passcode', 'bad');
@@ -367,13 +316,14 @@ function showApp() {
 
   const badge = document.getElementById('roleBadge');
   const driverBox = document.getElementById('driverBranchBox');
+  const staffBox = document.getElementById('staffBranchBox');
 
   if (currentRole === 'driver') {
     badge.className = 'driver-badge';
     badge.innerText = 'DRIVER';
     driverBox.classList.remove('hidden');
+    staffBox.classList.add('hidden');
 
-    // Render branch grid
     const grid = document.getElementById('branchGrid');
     grid.innerHTML = "";
     driverBranches.forEach((b, idx) => {
@@ -394,6 +344,8 @@ function showApp() {
     badge.className = '';
     badge.innerText = '';
     driverBox.classList.add('hidden');
+    staffBox.classList.remove('hidden');
+    document.getElementById('staffBranchDisplay').innerText = currentBranch;
   }
 
   const destSel = document.getElementById('destBranch');
@@ -403,7 +355,6 @@ function showApp() {
     opt.value = d; opt.innerText = d;
     destSel.appendChild(opt);
   });
-
   document.getElementById('originBranchDisplay').value = currentRole === 'driver' ? 'DRIVER' : currentBranch;
 }
 
@@ -412,6 +363,8 @@ function showTab(tab) {
   event.target.classList.add('active');
   document.getElementById('sendTab').classList.toggle('hidden', tab !== 'send');
   document.getElementById('receiveTab').classList.toggle('hidden', tab !== 'receive');
+  if (tab === 'receive') startVanPolling();
+  else stopVanPolling();
 }
 
 function logout() {
@@ -421,14 +374,89 @@ function logout() {
 
 function getActiveBranch() {
   if (currentRole === 'driver') {
-    // Read from selected grid card
     const selected = document.querySelector('.branch-card.selected');
     return selected ? selected.innerText.replace('🏢', '').trim() : currentBranch;
   }
   return currentBranch;
 }
 
-// ═══════════ CHIPS ═══════════
+/* ===================== INCOMING VANS + TIMER ===================== */
+
+function startVanPolling() {
+  loadIncomingVans();
+  if (vanPollInterval) clearInterval(vanPollInterval);
+  vanPollInterval = setInterval(loadIncomingVans, 10000);
+}
+
+function stopVanPolling() {
+  if (vanPollInterval) clearInterval(vanPollInterval);
+  stopVanTimers();
+}
+
+async function loadIncomingVans() {
+  const branch = getActiveBranch();
+  if (!branch) return;
+  try {
+    const res = await apiGet({ action: "getIncomingVans", branch: branch });
+    const vans = res.data || [];
+    const section = document.getElementById('incomingVansSection');
+    const list = document.getElementById('incomingVansList');
+    if (vans.length === 0) {
+      section.classList.add('hidden');
+      stopVanTimers();
+      return;
+    }
+    section.classList.remove('hidden');
+    list.innerHTML = vans.map((v, idx) => {
+      const cls = v.isLate ? 'red' : 'green';
+      return `
+      <div class="van-card ${cls}" onclick="fillVanNo('${v.vanNo}')" id="van-${idx}">
+        <div class="van-header">
+          <span class="van-title">Van ${v.vanNo} from ${v.origin}</span>
+          <span class="van-timer" id="timer-${idx}" data-min="${v.elapsedMinutes}" data-sec="${v.elapsedSeconds}">${pad(v.elapsedMinutes)}:${pad(v.elapsedSeconds)}</span>
+        </div>
+        <div class="van-meta">${v.count} shipment(s) coming — Tap to select</div>
+      </div>`;
+    }).join('');
+    startVanTimers();
+  } catch(e) {}
+}
+
+function pad(n) { return String(n).padStart(2, '0'); }
+
+function startVanTimers() {
+  if (vanTimerInterval) clearInterval(vanTimerInterval);
+  vanTimerInterval = setInterval(() => {
+    document.querySelectorAll('.van-timer').forEach(el => {
+      let min = parseInt(el.dataset.min) || 0;
+      let sec = parseInt(el.dataset.sec) || 0;
+      sec++;
+      if (sec >= 60) { sec = 0; min++; }
+      el.dataset.min = min;
+      el.dataset.sec = sec;
+      el.innerText = pad(min) + ':' + pad(sec);
+      // Auto-switch color at 20 min
+      const card = el.closest('.van-card');
+      if (min >= 20 && card && card.classList.contains('green')) {
+        card.classList.remove('green');
+        card.classList.add('red');
+      }
+    });
+  }, 1000);
+}
+
+function stopVanTimers() {
+  if (vanTimerInterval) clearInterval(vanTimerInterval);
+}
+
+function fillVanNo(van) {
+  document.getElementById('recvVanNo').value = van;
+  fetchPending();
+  toast('Van ' + van + ' selected', 'ok');
+}
+
+/* ===================== CHIPS ===================== */
+
 function renderChips(containerId, queue, placeholder) {
   const box = document.getElementById(containerId);
   if (queue.length === 0) {
@@ -480,7 +508,8 @@ function updateRecvBtn() {
   btn.disabled = recvQueue.length === 0;
 }
 
-// ═══════════ SEND HANDLERS ═══════════
+/* ===================== SEND ===================== */
+
 function handleSendInput(el) {
   const val = el.value;
   if (val.includes('\n')) {
@@ -511,7 +540,6 @@ async function sendShipments() {
   if (!dest) return toast('Select destination', 'bad');
   if (!van) return toast('Enter van number', 'bad');
   if (sendQueue.length === 0) return toast('Scan at least one ID', 'bad');
-
   toast('Sending ' + sendQueue.length + ' shipments...', 'ok');
   try {
     const res = await apiPost({
@@ -521,7 +549,6 @@ async function sendShipments() {
       vanNo: van,
       shipments: sendQueue.map(id => ({ shipmentId: id }))
     });
-
     if (res.success) {
       let msg = res.sent + ' sent';
       let bad = 0;
@@ -540,7 +567,8 @@ async function sendShipments() {
   } catch(e) { toast('Network error', 'bad'); }
 }
 
-// ═══════════ RECEIVE HANDLERS (AUTO-FLUSH) ═══════════
+/* ===================== RECEIVE ===================== */
+
 function handleRecvInput(el) {
   const val = el.value;
   if (val.includes('\n')) {
@@ -591,7 +619,6 @@ async function submitBatch() {
   if (!van) return toast('Enter van number', 'bad');
   if (!branch) return toast('Select a branch first', 'bad');
   if (recvQueue.length === 0) return;
-
   toast('Receiving ' + recvQueue.length + ' shipments...', 'ok');
   try {
     const res = await apiPost({ action: "receiveBatch", branch: branch, vanNo: van, shipmentIds: recvQueue });
@@ -599,10 +626,11 @@ async function submitBatch() {
       let msg = res.receivedCount + ' received';
       if (res.notFoundIds && res.notFoundIds.length) msg += ' | ' + res.notFoundIds.length + ' not found';
       toast(msg, res.notFoundIds && res.notFoundIds.length ? 'warn' : 'ok');
-
       recvQueue = res.notFoundIds || [];
       renderChips('recvChipList', recvQueue, 'Scanned shipment IDs appear here');
       updateRecvBtn();
+      fetchPending();
+      loadIncomingVans();
     } else {
       toast(res.error, 'bad');
     }
@@ -638,11 +666,15 @@ async function receiveAllSheet() {
   try {
     const res = await apiPost({ action: "receiveAll", branch: branch, vanNo: van });
     toast(res.message, res.success ? 'ok' : 'bad');
-    if (res.success) fetchPending();
+    if (res.success) {
+      fetchPending();
+      loadIncomingVans();
+    }
   } catch(e) { toast('Error', 'bad'); }
 }
 
-// ═══════════ CAMERA ═══════════
+/* ===================== CAMERA ===================== */
+
 async function initDetector() {
   if ('BarcodeDetector' in window) {
     try {
@@ -693,19 +725,16 @@ async function tick() {
     requestAnimationFrame(tick);
     return;
   }
-
   const now = Date.now();
   if (now - lastScanTime < 350) {
     requestAnimationFrame(tick);
     return;
   }
-
   const canvas = document.getElementById('camCanvas');
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
   let code = null;
   if (barcodeDetector) {
     try {
@@ -713,7 +742,6 @@ async function tick() {
       if (codes.length) code = codes[0].rawValue;
     } catch(e) {}
   }
-
   if (code) {
     lastScanTime = now;
     const clean = cleanId(code);
@@ -731,11 +759,9 @@ async function tick() {
       }
     }
   }
-
   requestAnimationFrame(tick);
 }
 
-// ═══════════ UTILS ═══════════
 function toast(msg, type) {
   const t = document.getElementById('toast');
   t.innerText = msg;
