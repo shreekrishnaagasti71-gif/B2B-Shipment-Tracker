@@ -49,7 +49,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .branch-card .branch-icon{font-size:20px;margin-bottom:4px;display:block}
 .branch-display{background:#f0f9ff;border:2px solid #2563eb;border-radius:10px;padding:14px;text-align:center;font-size:16px;font-weight:800;color:#2563eb;margin-bottom:12px}
 
-/* VAN CARDS */
+/* VAN CARDS — GREEN vs RED */
 .van-card{border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;border:2px solid}
 .van-card.green{background:#dcfce7;border-color:#16a34a;color:#14532d}
 .van-card.red{background:#fee2e2;border-color:#dc2626;color:#7f1d1d}
@@ -87,7 +87,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 <button class="reset-btn" onclick="hardReset()">🔄 Reset App</button>
 
 <div class="header">
-  <h1>NCM B2B TRACKER</h1>
+  <h1>NCM B2B Tracker</h1>
   <p>Scan · Send · Receive · Live</p>
 </div>
 <div class="toast" id="toast"></div>
@@ -208,7 +208,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 </div>
 
 <script>
-const APP_VERSION = "v11-timer-fixed";
+const APP_VERSION = "v12-timer-live";
 let SCRIPT_URL = localStorage.getItem('ncm_url') || "";
 let currentBranch = "";
 let currentRole = "";
@@ -380,7 +380,7 @@ function getActiveBranch() {
   return currentBranch;
 }
 
-/* ===================== INCOMING VANS + TIMER ===================== */
+/* ===================== INCOMING VANS ===================== */
 
 function startVanPolling() {
   loadIncomingVans();
@@ -435,7 +435,6 @@ function startVanTimers() {
       el.dataset.min = min;
       el.dataset.sec = sec;
       el.innerText = pad(min) + ':' + pad(sec);
-      // Auto-switch color at 20 min
       const card = el.closest('.van-card');
       if (min >= 20 && card && card.classList.contains('green')) {
         card.classList.remove('green');
