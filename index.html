@@ -15,8 +15,8 @@ body{font-family:Segoe UI,Arial,sans-serif;background:#f8fafc;color:#1e293b;min-
 .login-box h2{text-align:center;color:#1e293b;margin-bottom:20px;font-size:18px;font-weight:700}
 .login-box input{width:100%;padding:14px;font-size:18px;border:2px solid #e2e8f0;border-radius:10px;background:#fff;color:#1e293b;text-align:center;letter-spacing:3px;font-weight:600}
 .login-box input:focus{outline:none;border-color:#dc2626}
-.btn{width:100%;padding:14px;font-size:15px;font-weight:700;border:none;border-radius:10px;cursor:pointer;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.3px}
-.btn:active{transform:scale(0.98)}
+.btn{width:100%;padding:14px;font-size:15px;font-weight:700;border:none;border-radius:10px;cursor:pointer;transition:background 0.12s;text-transform:uppercase;letter-spacing:0.3px}
+.btn:active{opacity:0.85}
 .btn-red{background:#dc2626;color:#fff}.btn-red:hover{background:#b91c1c}
 .btn-blue{background:#2563eb;color:#fff}.btn-blue:hover{background:#1d4ed8}
 .btn-green{background:#16a34a;color:#fff}.btn-green:hover{background:#15803d}
@@ -32,25 +32,24 @@ input,select{width:100%;padding:11px;font-size:15px;border:1.5px solid #e2e8f0;b
 input:focus,select:focus{outline:none;border-color:#dc2626}
 input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e2e8f0}
 .scan-big{width:100%;padding:28px;font-size:18px;font-weight:800;border:none;border-radius:14px;cursor:pointer;background:#16a34a;color:#fff;text-transform:uppercase;letter-spacing:0.5px;box-shadow:0 4px 14px rgba(22,163,74,0.25);display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px}
-.scan-big:hover{background:#15803d;transform:translateY(-1px)}
-.scan-big:active{transform:scale(0.98)}
+.scan-big:active{opacity:0.88}
 .chip-box{background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;min-height:56px;margin-top:10px;position:relative}
 .chip-box:focus-within{border-color:#dc2626}
 .chip-list{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.chip{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:20px;padding:6px 10px 6px 14px;display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:#1e293b;animation:popIn 0.15s ease}
+.chip{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:20px;padding:6px 10px 6px 14px;display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:#1e293b;animation:popIn 0.12s ease}
 .chip .x{background:#cbd5e1;border:none;border-radius:50%;width:18px;height:18px;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;font-weight:700}
 .chip .x:hover{background:#dc2626}
 .chip-placeholder{color:#94a3b8;font-size:13px;font-style:italic}
 @keyframes popIn{from{transform:scale(0.8);opacity:0}to{transform:scale(1);opacity:1}}
 .branch-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
-.branch-card{background:#fff;border:2px solid #e2e8f0;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;transition:all 0.15s;font-size:13px;font-weight:700;color:#475569}
+.branch-card{background:#fff;border:2px solid #e2e8f0;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;transition:all 0.12s;font-size:13px;font-weight:700;color:#475569}
 .branch-card:active{transform:scale(0.96)}
 .branch-card.selected{background:#2563eb;border-color:#2563eb;color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.25)}
 .branch-card .branch-icon{font-size:20px;margin-bottom:4px;display:block}
 .branch-display{background:#f0f9ff;border:2px solid #2563eb;border-radius:10px;padding:14px;text-align:center;font-size:16px;font-weight:800;color:#2563eb;margin-bottom:12px}
 
 /* VAN CARDS — GREEN vs RED */
-.van-card{border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;border:2px solid}
+.van-card{border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.12s;border:2px solid;contain:layout}
 .van-card.green{background:#dcfce7;border-color:#16a34a;color:#14532d}
 .van-card.red{background:#fee2e2;border-color:#dc2626;color:#7f1d1d}
 .van-card.grey{background:#f1f5f9;border-color:#cbd5e1;color:#475569;cursor:default}
@@ -60,22 +59,27 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .van-card:active{transform:scale(0.98)}
 .van-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .van-title{font-size:16px;font-weight:800}
-.van-timer{font-size:24px;font-weight:800;font-family:monospace;letter-spacing:1px}
+.van-timer{font-size:24px;font-weight:800;font-family:monospace;letter-spacing:1px;will-change:contents}
 .van-meta{font-size:12px;font-weight:600;opacity:0.8;margin-top:4px}
 
 /* ALL-BRANCH MOVEMENT CARDS */
-.move-card{border-radius:10px;padding:12px 14px;margin-bottom:8px;border:1.5px solid;cursor:default}
-.move-card.moving{background:#eff6ff;border-color:#93c5fd}
-.move-card.moving.late{background:#fff7ed;border-color:#fdba74}
+.move-card{border-radius:10px;padding:12px 14px;margin-bottom:8px;border:1.5px solid;cursor:default;contain:layout}
+.move-card.incoming{background:#f0fdf4;border-color:#86efac}
+.move-card.incoming.late{background:#fff7ed;border-color:#fdba74}
+.move-card.outgoing{background:#eff6ff;border-color:#93c5fd}
+.move-card.outgoing.late{background:#fef2f2;border-color:#fca5a5}
 .move-card.idle{background:#f8fafc;border-color:#e2e8f0}
 .move-card.off-duty{background:#f1f5f9;border-color:#cbd5e1;opacity:0.75}
 .move-route{font-size:14px;font-weight:800;color:#1e293b}
 .move-route .arrow{color:#94a3b8;margin:0 6px;font-weight:400}
 .move-sub{font-size:11px;color:#64748b;font-weight:600;margin-top:3px}
-.move-timer{font-size:13px;font-weight:800;font-family:monospace;float:right}
+.move-timer{font-size:13px;font-weight:800;font-family:monospace;float:right;will-change:contents}
 .move-timer.late{color:#dc2626}
 .move-timer.ontime{color:#16a34a}
-.move-empty{color:#94a3b8;font-size:12px;text-align:center;padding:12px 0;font-style:italic}
+.dir-badge{display:inline-block;font-size:10px;font-weight:800;padding:1px 6px;border-radius:4px;margin-right:5px;text-transform:uppercase}
+.dir-badge.in{background:#dcfce7;color:#15803d}
+.dir-badge.out{background:#dbeafe;color:#1d4ed8}
+.round-badge{display:inline-block;font-size:10px;font-weight:800;padding:1px 6px;border-radius:4px;background:#fef9c3;color:#854d0e;margin-left:4px}
 
 .cam-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:2000;flex-direction:column}
 .cam-modal.active{display:flex}
@@ -136,9 +140,9 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
       <button class="nav-tab" onclick="showTab('vans',this)">All Vans</button>
     </div>
 
-    <!-- ALWAYS-VISIBLE: all van movements strip (Send + Receive tabs) -->
+    <!-- MY BRANCH VAN MOVEMENTS STRIP (Send + Receive tabs) -->
     <div id="allVansSection" class="hidden mt-10">
-      <h4 style="font-size:13px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">🗺️ Van Movements (All Branches)</h4>
+      <h4 id="stripHeading" style="font-size:13px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">🚐 Van Movements</h4>
       <div id="allVansMoveList"></div>
     </div>
 
@@ -179,7 +183,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 
         <!-- INCOMING VANS -->
         <div id="incomingVansSection" class="hidden mt-10">
-          <h4 style="font-size:13px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">🚐 Incoming Vans</h4>
+          <h4 style="font-size:13px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">🟢 Incoming Vans</h4>
           <div id="incomingVansList"></div>
         </div>
 
@@ -219,7 +223,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
     <!-- ALL VANS TAB — company-wide board with large van cards -->
     <div id="vansTab" class="hidden">
       <div class="card">
-        <h4>🚐 All Van Movement</h4>
+        <h4>🚐 All Van Movement — Company Wide</h4>
         <div id="vansTabList"></div>
       </div>
     </div>
@@ -241,7 +245,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 </div>
 
 <script>
-const APP_VERSION = "v10-simple-timer";
+const APP_VERSION = "v11-branch-filter";
 let SCRIPT_URL = localStorage.getItem('ncm_url') || "";
 let currentBranch = "";
 let currentRole = "";
@@ -257,14 +261,12 @@ let recvTimer = null;
 const RECV_AUTO_DELAY = 600;
 
 /* ===================== POLL + TICK INTERVALS =====================
-   Four separate interval handles — NO duplicates:
-   vanPollInterval    : fetch incoming vans from server (Receive tab)
-   vanTickInterval    : tick incoming-van timers every second
-   allVansPollInterval: fetch all-van movements from server (Send strip + Vans tab)
-   allVansTickInterval: tick all-van timers every second
+   Four separate interval handles — NO duplicates.
+   Poll intervals are deliberately longer (15-20s) to keep Apps Script
+   quota usage low and the app feeling snappy for 100+ concurrent users.
 */
-let vanPollInterval    = null;
-let vanTickInterval    = null;
+let vanPollInterval     = null;
+let vanTickInterval     = null;
 let allVansPollInterval = null;
 let allVansTickInterval = null;
 
@@ -284,10 +286,10 @@ function init() {
   if (sess) {
     try {
       const s = JSON.parse(sess);
-      currentBranch = s.branch || "";
-      currentRole = s.role || "branch";
-      currentDestinations = s.destinations || [];
-      driverBranches = s.branches || [];
+      currentBranch      = s.branch       || "";
+      currentRole        = s.role         || "branch";
+      currentDestinations= s.destinations || [];
+      driverBranches     = s.branches     || [];
       showApp();
       return;
     } catch(e){ localStorage.removeItem('ncm_session'); }
@@ -312,17 +314,29 @@ function saveUrl() {
   toast('Saved. Please login.', 'ok');
 }
 
+/* ===================== API — with 8s timeout ===================== */
+
 async function apiGet(params) {
-  const res = await fetch(SCRIPT_URL + "?" + new URLSearchParams(params));
-  return res.json();
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const res = await fetch(SCRIPT_URL + "?" + new URLSearchParams(params), { signal: ctrl.signal });
+    return res.json();
+  } finally { clearTimeout(tid); }
 }
+
 async function apiPost(body) {
-  const res = await fetch(SCRIPT_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(body)
-  });
-  return res.json();
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), 12000);
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(body),
+      signal: ctrl.signal
+    });
+    return res.json();
+  } finally { clearTimeout(tid); }
 }
 
 async function login() {
@@ -333,10 +347,10 @@ async function login() {
     if (res.success) {
       currentRole = res.role;
       if (res.role === 'branch') {
-        currentBranch = res.branch;
+        currentBranch       = res.branch;
         currentDestinations = res.destinations || [];
       } else if (res.role === 'driver') {
-        currentBranch = "";
+        currentBranch  = "";
         driverBranches = res.branches || [];
       }
       localStorage.setItem('ncm_session', JSON.stringify({
@@ -355,15 +369,15 @@ function showApp() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('mainApp').classList.remove('hidden');
   document.getElementById('statusBar').classList.remove('hidden');
-  document.getElementById('userBranch').innerText = currentBranch || 'DRIVER';
+  document.getElementById('userBranch').textContent = currentBranch || 'DRIVER';
 
-  const badge = document.getElementById('roleBadge');
-  const driverBox = document.getElementById('driverBranchBox');
+  const badge    = document.getElementById('roleBadge');
+  const driverBox= document.getElementById('driverBranchBox');
   const staffBox = document.getElementById('staffBranchBox');
 
   if (currentRole === 'driver') {
     badge.className = 'driver-badge';
-    badge.innerText = 'DRIVER';
+    badge.textContent = 'DRIVER';
     driverBox.classList.remove('hidden');
     staffBox.classList.add('hidden');
     const grid = document.getElementById('branchGrid');
@@ -383,42 +397,44 @@ function showApp() {
     if (driverBranches.length) currentBranch = driverBranches[0];
   } else {
     badge.className = '';
-    badge.innerText = '';
+    badge.textContent = '';
     driverBox.classList.add('hidden');
     staffBox.classList.remove('hidden');
-    document.getElementById('staffBranchDisplay').innerText = currentBranch;
+    document.getElementById('staffBranchDisplay').textContent = currentBranch;
   }
 
   const destSel = document.getElementById('destBranch');
   destSel.innerHTML = "";
   currentDestinations.forEach(d => {
     const opt = document.createElement('option');
-    opt.value = d; opt.innerText = d;
+    opt.value = d; opt.textContent = d;
     destSel.appendChild(opt);
   });
   document.getElementById('originBranchDisplay').value = currentRole === 'driver' ? 'DRIVER' : currentBranch;
 
-  // Start the always-visible movements strip immediately
+  // Update strip heading with branch name
+  document.getElementById('stripHeading').textContent =
+    '🚐 Van Movements — ' + (currentBranch || 'All');
+
   startAllVansPolling();
 }
 
 function showTab(tab, el) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('sendTab').classList.toggle('hidden', tab !== 'send');
+  document.getElementById('sendTab').classList.toggle('hidden',    tab !== 'send');
   document.getElementById('receiveTab').classList.toggle('hidden', tab !== 'receive');
-  document.getElementById('vansTab').classList.toggle('hidden', tab !== 'vans');
+  document.getElementById('vansTab').classList.toggle('hidden',    tab !== 'vans');
 
-  // Stop incoming-van polling when leaving Receive tab
   stopVanPolling();
 
   if (tab === 'receive') {
-    startVanPolling();           // incoming vans for this branch
-    startAllVansPolling();       // movements strip stays visible
+    startVanPolling();
+    startAllVansPolling();
   } else if (tab === 'vans') {
-    startAllVansPolling();       // loads big van-card board too
+    startAllVansPolling();
   } else {
-    startAllVansPolling();       // Send tab: strip stays visible
+    startAllVansPolling();
   }
 }
 
@@ -430,7 +446,7 @@ function logout() {
 function getActiveBranch() {
   if (currentRole === 'driver') {
     const selected = document.querySelector('.branch-card.selected');
-    return selected ? selected.innerText.replace('🏢','').trim() : currentBranch;
+    return selected ? selected.textContent.replace('🏢','').trim() : currentBranch;
   }
   return currentBranch;
 }
@@ -440,7 +456,7 @@ function getActiveBranch() {
 function startVanPolling() {
   loadIncomingVans();
   if (vanPollInterval) clearInterval(vanPollInterval);
-  vanPollInterval = setInterval(loadIncomingVans, 10000);
+  vanPollInterval = setInterval(loadIncomingVans, 15000); // 15s — fresh enough, low quota
 }
 
 function stopVanPolling() {
@@ -452,28 +468,25 @@ async function loadIncomingVans() {
   const branch = getActiveBranch();
   if (!branch) return;
   try {
-    const res = await apiGet({ action: "getIncomingVans", branch: branch });
+    const res  = await apiGet({ action: "getIncomingVans", branch: branch });
     const vans = res.data || [];
     const section = document.getElementById('incomingVansSection');
     const list    = document.getElementById('incomingVansList');
 
-    if (vans.length === 0) {
-      section.classList.add('hidden');
-      stopVanTick();
-      return;
-    }
+    if (vans.length === 0) { section.classList.add('hidden'); stopVanTick(); return; }
 
     section.classList.remove('hidden');
     list.innerHTML = vans.map((v, idx) => `
       <div class="van-card ${v.isLate ? 'red' : 'green'}" onclick="fillVanNo('${v.vanNo}')">
         <div class="van-header">
           <span class="van-title">Van ${v.vanNo} from ${v.origin}</span>
+          ${v.roundLabel ? '<span class="round-badge">Round ' + v.roundLabel + '</span>' : ''}
         </div>
         <div class="van-timer" id="inVanTimer_${idx}"
-             data-min="${v.elapsedMinutes}" data-sec="${v.elapsedSeconds}">
+             data-start="${Date.now() - (v.elapsedMinutes*60 + v.elapsedSeconds)*1000}">
           ${fmt(v.elapsedMinutes, v.elapsedSeconds)}
         </div>
-        <div class="van-meta">${v.count} shipment(s) coming — Tap to select</div>
+        <div class="van-meta">${v.count} shipment(s) — Tap to select van</div>
       </div>
     `).join('');
 
@@ -485,14 +498,14 @@ function startVanTick() {
   if (vanTickInterval) clearInterval(vanTickInterval);
   vanTickInterval = setInterval(() => {
     document.querySelectorAll('[id^="inVanTimer_"]').forEach(el => {
-      let min = +el.dataset.min, sec = +el.dataset.sec;
-      sec++; if (sec >= 60) { sec = 0; min++; }
-      el.dataset.min = min; el.dataset.sec = sec;
-      el.innerText = fmt(min, sec);
+      const elapsed = Math.floor((Date.now() - +el.dataset.start) / 1000);
+      const min = Math.floor(elapsed / 60), sec = elapsed % 60;
+      el.textContent = fmt(min, sec);
       const card = el.closest('.van-card');
       if (card) {
-        card.classList.toggle('red',   min >= 20);
-        card.classList.toggle('green', min < 20);
+        const late = min >= 20;
+        card.classList.toggle('red',   late);
+        card.classList.toggle('green', !late);
       }
     });
   }, 1000);
@@ -508,12 +521,12 @@ function fillVanNo(van) {
   toast('Van ' + van + ' selected', 'ok');
 }
 
-/* ===================== ALL VANS — movements strip + vans tab ===================== */
+/* ===================== ALL VANS — branch-filtered strip + full vans tab ===================== */
 
 function startAllVansPolling() {
   loadAllVans();
   if (allVansPollInterval) clearInterval(allVansPollInterval);
-  allVansPollInterval = setInterval(loadAllVans, 10000);
+  allVansPollInterval = setInterval(loadAllVans, 20000); // 20s — keeps quota low for 100+ users
 
   if (allVansTickInterval) clearInterval(allVansTickInterval);
   allVansTickInterval = setInterval(tickAllVansTimers, 1000);
@@ -526,84 +539,82 @@ function stopAllVansPolling() {
 
 async function loadAllVans() {
   try {
-    const res = await apiGet({ action: "getAllVans" });
+    const res  = await apiGet({ action: "getAllVans" });
     const vans = res.data || [];
 
-    // Sort: moving first
     const sorted = [...vans].sort((a, b) => {
       if (a.status === 'moving' && b.status !== 'moving') return -1;
       if (a.status !== 'moving' && b.status === 'moving') return 1;
       return 0;
     });
 
-    renderAllVansStrip(sorted);   // always-visible move-card strip
-    renderVansTabBoard(sorted);   // big van-card board on Vans tab
+    renderAllVansStrip(sorted);  // branch-filtered strip on Send/Receive tabs
+    renderVansTabBoard(sorted);  // full company board on All Vans tab
   } catch(e) {}
 }
 
-// ── Always-visible strip (Send + Receive tabs) ────────────────────────────
+// ── Branch-filtered strip: only show vans going TO or FROM this branch ───
 function renderAllVansStrip(vans) {
   const section = document.getElementById('allVansSection');
   const list    = document.getElementById('allVansMoveList');
-  const moving  = vans.filter(v => v.status === 'moving');
+  const branch  = currentBranch;
 
-  if (moving.length === 0) {
-    section.classList.add('hidden');
-    return;
-  }
+  // Only show vans that involve this branch (incoming OR outgoing)
+  const relevant = vans.filter(v =>
+    v.status === 'moving' &&
+    (v.toBranch === branch || v.fromBranch === branch)
+  );
+
+  if (relevant.length === 0) { section.classList.add('hidden'); return; }
   section.classList.remove('hidden');
 
-  list.innerHTML = vans.map((v, idx) => {
-    if (v.status === 'moving') {
-      const roundLabel = v.roundLabel ? 'Round ' + v.roundLabel + ' · ' : '';
-      return `
-        <div class="move-card moving ${v.isLate ? 'late' : ''}"
-             data-depart-min="${v.elapsedMinutes}" data-depart-sec="${v.elapsedSeconds}">
-          <span class="move-timer ${v.isLate ? 'late' : 'ontime'}">${fmt(v.elapsedMinutes, v.elapsedSeconds)}</span>
-          <div class="move-route">Van ${v.vanNo}: ${v.fromBranch}<span class="arrow">→</span>${v.toBranch}</div>
-          <div class="move-sub">${roundLabel}${v.isLate ? 'Running long' : 'On schedule'}</div>
-        </div>`;
-    } else if (v.status === 'off_duty') {
-      return `
-        <div class="move-card off-duty">
-          <div class="move-route">Van ${v.vanNo}</div>
-          <div class="move-sub">Off duty for today — parked at ${v.lastLocation}</div>
-        </div>`;
-    } else {
-      return `
-        <div class="move-card idle">
-          <div class="move-route">Van ${v.vanNo}</div>
-          <div class="move-sub">Idle — parked at ${v.lastLocation}</div>
-        </div>`;
-    }
+  list.innerHTML = relevant.map((v) => {
+    const isIncoming  = v.toBranch === branch;
+    const dirClass    = isIncoming ? 'incoming' : 'outgoing';
+    const dirLabel    = isIncoming
+      ? '<span class="dir-badge in">INCOMING</span>'
+      : '<span class="dir-badge out">OUTGOING</span>';
+    const roundTag    = v.roundLabel
+      ? '<span class="round-badge">Round ' + v.roundLabel + '</span>'
+      : '';
+    const startEpoch  = Date.now() - (v.elapsedMinutes * 60 + v.elapsedSeconds) * 1000;
+    return `
+      <div class="move-card ${dirClass} ${v.isLate ? 'late' : ''}"
+           data-start="${startEpoch}">
+        <span class="move-timer ${v.isLate ? 'late' : 'ontime'}">${fmt(v.elapsedMinutes, v.elapsedSeconds)}</span>
+        <div class="move-route">Van ${v.vanNo}: ${v.fromBranch}<span class="arrow">→</span>${v.toBranch} ${roundTag}</div>
+        <div class="move-sub">${dirLabel} ${v.isLate ? '⚠ Running long' : '✓ On schedule'}</div>
+      </div>`;
   }).join('');
 }
 
-// ── Vans tab board (big van cards) ────────────────────────────────────────
+// ── Full company-wide board on All Vans tab ───────────────────────────────
 function renderVansTabBoard(vans) {
   const list = document.getElementById('vansTabList');
   if (vans.length === 0) {
-    list.innerHTML = '<div style="padding:14px;text-align:center;color:#94a3b8;font-size:13px">No van activity yet — this fills in as shipments are sent and received.</div>';
+    list.innerHTML = '<div style="padding:14px;text-align:center;color:#94a3b8;font-size:13px">No van activity yet.</div>';
     return;
   }
   list.innerHTML = vans.map((v, idx) => {
     if (v.status === 'moving') {
-      const roundTag = v.roundLabel ? ` · Round ${v.roundLabel}` : '';
+      const roundTag   = v.roundLabel ? ' · Round ' + v.roundLabel : '';
+      const startEpoch = Date.now() - (v.elapsedMinutes * 60 + v.elapsedSeconds) * 1000;
       return `
-        <div class="van-card ${v.isLate ? 'red' : 'green'}" id="allVanCard_${idx}">
-          <div class="van-header"><span class="van-title">Van ${v.vanNo}</span></div>
+        <div class="van-card ${v.isLate ? 'red' : 'green'}">
+          <div class="van-header">
+            <span class="van-title">Van ${v.vanNo}</span>
+            ${v.roundLabel ? '<span class="round-badge">Round ' + v.roundLabel + '</span>' : ''}
+          </div>
           <div class="van-meta" style="font-size:13px;font-weight:700;margin-bottom:4px">${v.fromBranch} → ${v.toBranch}${roundTag}</div>
-          <div class="van-timer" id="allVanTimer_${idx}"
-               data-min="${v.elapsedMinutes}" data-sec="${v.elapsedSeconds}">
+          <div class="van-timer" id="allVanTimer_${idx}" data-start="${startEpoch}">
             ${fmt(v.elapsedMinutes, v.elapsedSeconds)}
           </div>
-          <div class="van-meta">Last update: just now (live)</div>
         </div>`;
     } else if (v.status === 'off_duty') {
       return `
         <div class="van-card offduty">
-          <div class="van-header"><span class="van-title">Van ${v.vanNo}</span></div>
-          <div class="van-meta">Off duty for today — parked at ${v.lastLocation}</div>
+          <div class="van-header"><span class="van-title">Van ${v.vanNo}</span><span class="round-badge">${v.roundLabel || 'Done'}</span></div>
+          <div class="van-meta">✓ Off duty — parked at ${v.lastLocation}</div>
         </div>`;
     } else {
       return `
@@ -615,35 +626,34 @@ function renderVansTabBoard(vans) {
   }).join('');
 }
 
-// ── Tick all moving-van timers every second ───────────────────────────────
+// ── Tick all moving-van timers every second (uses absolute start epoch) ───
 function tickAllVansTimers() {
-  // Tick the always-visible move-card strip
-  document.querySelectorAll('#allVansMoveList .move-card[data-depart-min]').forEach(card => {
-    let min = +card.getAttribute('data-depart-min');
-    let sec = +card.getAttribute('data-depart-sec');
-    sec++; if (sec >= 60) { sec = 0; min++; }
-    card.setAttribute('data-depart-min', min);
-    card.setAttribute('data-depart-sec', sec);
+  const now = Date.now();
+
+  // Strip timers
+  document.querySelectorAll('#allVansMoveList .move-card[data-start]').forEach(card => {
+    const elapsed = Math.floor((now - +card.dataset.start) / 1000);
+    const min = Math.floor(elapsed / 60), sec = elapsed % 60;
     const timerEl = card.querySelector('.move-timer');
-    if (timerEl) timerEl.innerText = fmt(min, sec);
-    const isLate = min >= 20;
-    card.classList.toggle('late', isLate);
+    if (timerEl) timerEl.textContent = fmt(min, sec);
+    const late = min >= 20;
+    card.classList.toggle('late', late);
     if (timerEl) {
-      timerEl.classList.toggle('late',   isLate);
-      timerEl.classList.toggle('ontime', !isLate);
+      timerEl.classList.toggle('late',   late);
+      timerEl.classList.toggle('ontime', !late);
     }
   });
 
-  // Tick the big van-card timers on the Vans tab
+  // All-vans tab timers
   document.querySelectorAll('[id^="allVanTimer_"]').forEach(el => {
-    let min = +el.dataset.min, sec = +el.dataset.sec;
-    sec++; if (sec >= 60) { sec = 0; min++; }
-    el.dataset.min = min; el.dataset.sec = sec;
-    el.innerText = fmt(min, sec);
+    const elapsed = Math.floor((now - +el.dataset.start) / 1000);
+    const min = Math.floor(elapsed / 60), sec = elapsed % 60;
+    el.textContent = fmt(min, sec);
     const card = el.closest('.van-card');
     if (card) {
-      card.classList.toggle('red',   min >= 20);
-      card.classList.toggle('green', min < 20);
+      const late = min >= 20;
+      card.classList.toggle('red',   late);
+      card.classList.toggle('green', !late);
     }
   });
 }
@@ -665,7 +675,7 @@ function removeChip(containerId, id) {
   if (containerId === 'sendChipList') {
     sendQueue = sendQueue.filter(x => x !== id);
     renderChips('sendChipList', sendQueue, 'Scan or paste shipment IDs here');
-    document.getElementById('sendCount').innerText = sendQueue.length;
+    document.getElementById('sendCount').textContent = sendQueue.length;
   } else {
     recvQueue = recvQueue.filter(x => x !== id);
     renderChips('recvChipList', recvQueue, 'Scanned shipment IDs appear here');
@@ -679,7 +689,7 @@ function addChip(id, containerId, queueArray, placeholder) {
   queueArray.push(id);
   renderChips(containerId === 'sendChipList' ? 'sendChipList' : 'recvChipList', queueArray, placeholder);
   if (containerId === 'sendChipList') {
-    document.getElementById('sendCount').innerText = sendQueue.length;
+    document.getElementById('sendCount').textContent = sendQueue.length;
   } else {
     updateRecvBtn();
   }
@@ -696,8 +706,8 @@ function cleanId(raw) {
 
 function updateRecvBtn() {
   const btn = document.getElementById('recvBatchBtn');
-  document.getElementById('scanCount').innerText = recvQueue.length + ' items';
-  document.getElementById('recvBtnCount').innerText = recvQueue.length;
+  document.getElementById('scanCount').textContent   = recvQueue.length + ' items';
+  document.getElementById('recvBtnCount').textContent = recvQueue.length;
   btn.disabled = recvQueue.length === 0;
 }
 
@@ -741,6 +751,7 @@ async function sendShipments() {
     });
     if (res.success) {
       let msg = res.sent + ' sent';
+      if (res.routeLabel) msg += ' · ' + res.routeLabel;
       if (res.results) {
         const dupes = res.results.filter(r => r.status === 'duplicate');
         if (dupes.length) msg += ' | ' + dupes.length + ' already in transit';
@@ -748,7 +759,9 @@ async function sendShipments() {
       toast(msg, 'ok');
       sendQueue = [];
       renderChips('sendChipList', [], 'Scan or paste shipment IDs here');
-      document.getElementById('sendCount').innerText = '0';
+      document.getElementById('sendCount').textContent = '0';
+      // Immediately refresh van strip after sending
+      setTimeout(loadAllVans, 1500);
     } else {
       toast(res.error, 'bad');
     }
@@ -815,6 +828,7 @@ async function submitBatch() {
       updateRecvBtn();
       fetchPending();
       loadIncomingVans();
+      setTimeout(loadAllVans, 1500);
     } else {
       toast(res.error, 'bad');
     }
@@ -827,10 +841,10 @@ async function fetchPending() {
   if (!van)    return toast('Enter van number first', 'bad');
   if (!branch) return toast('Select a branch first', 'bad');
   try {
-    const res = await apiGet({ action: "getPendingByVan", branch: branch, vanNo: van });
+    const res   = await apiGet({ action: "getPendingByVan", branch: branch, vanNo: van });
     const items = res.data || [];
     document.getElementById('pendingSection').classList.remove('hidden');
-    document.getElementById('pendingCount').innerText = items.length;
+    document.getElementById('pendingCount').textContent = items.length;
     const list = document.getElementById('shipmentList');
     if (items.length === 0) {
       list.innerHTML = '<div style="padding:14px;text-align:center;color:#94a3b8;font-size:13px">No pending shipments</div>';
@@ -850,7 +864,7 @@ async function receiveAllSheet() {
   try {
     const res = await apiPost({ action: "receiveAll", branch: branch, vanNo: van });
     toast(res.message, res.success ? 'ok' : 'bad');
-    if (res.success) { fetchPending(); loadIncomingVans(); }
+    if (res.success) { fetchPending(); loadIncomingVans(); setTimeout(loadAllVans, 1500); }
   } catch(e) { toast('Error', 'bad'); }
 }
 
@@ -940,7 +954,7 @@ function fmt(min, sec) {
 
 function toast(msg, type) {
   const t = document.getElementById('toast');
-  t.innerText = msg;
+  t.textContent = msg;
   t.className = 'toast ' + type;
   t.style.display = 'block';
   clearTimeout(t._tm);
