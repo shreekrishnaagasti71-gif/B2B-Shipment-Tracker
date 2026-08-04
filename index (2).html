@@ -48,14 +48,35 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .branch-card.selected{background:#2563eb;border-color:#2563eb;color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.25)}
 .branch-card .branch-icon{font-size:20px;margin-bottom:4px;display:block}
 .branch-display{background:#f0f9ff;border:2px solid #2563eb;border-radius:10px;padding:14px;text-align:center;font-size:16px;font-weight:800;color:#2563eb;margin-bottom:12px}
+
+/* VAN CARDS — GREEN vs RED */
 .van-card{border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;border:2px solid}
 .van-card.green{background:#dcfce7;border-color:#16a34a;color:#14532d}
 .van-card.red{background:#fee2e2;border-color:#dc2626;color:#7f1d1d}
+.van-card.grey{background:#f1f5f9;border-color:#cbd5e1;color:#475569;cursor:default}
+.van-card.grey:active{transform:none}
+.van-card.offduty{background:#fef3c7;border-color:#ca8a04;color:#78350f;cursor:default}
+.van-card.offduty:active{transform:none}
 .van-card:active{transform:scale(0.98)}
 .van-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .van-title{font-size:16px;font-weight:800}
 .van-timer{font-size:24px;font-weight:800;font-family:monospace;letter-spacing:1px}
 .van-meta{font-size:12px;font-weight:600;opacity:0.8;margin-top:4px}
+
+/* ALL-BRANCH MOVEMENT CARDS */
+.move-card{border-radius:10px;padding:12px 14px;margin-bottom:8px;border:1.5px solid;cursor:default}
+.move-card.moving{background:#eff6ff;border-color:#93c5fd}
+.move-card.moving.late{background:#fff7ed;border-color:#fdba74}
+.move-card.idle{background:#f8fafc;border-color:#e2e8f0}
+.move-card.off-duty{background:#f1f5f9;border-color:#cbd5e1;opacity:0.75}
+.move-route{font-size:14px;font-weight:800;color:#1e293b}
+.move-route .arrow{color:#94a3b8;margin:0 6px;font-weight:400}
+.move-sub{font-size:11px;color:#64748b;font-weight:600;margin-top:3px}
+.move-timer{font-size:13px;font-weight:800;font-family:monospace;float:right}
+.move-timer.late{color:#dc2626}
+.move-timer.ontime{color:#16a34a}
+.move-empty{color:#94a3b8;font-size:12px;text-align:center;padding:12px 0;font-style:italic}
+
 .cam-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:2000;flex-direction:column}
 .cam-modal.active{display:flex}
 .cam-modal video{width:100%;height:calc(100% - 80px);object-fit:cover}
@@ -101,7 +122,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
   <div id="loginScreen" class="hidden">
     <div class="login-box">
       <h2>Branch Login</h2>
-      <input type="password" id="passcodeInput" placeholder="0000" maxlength="10">
+      <input type="password" id="passcodeInput" placeholder="0000" maxlength="10" onkeydown="if(event.key==='Enter')login()">
       <button class="btn btn-red mt-10" onclick="login()">Login</button>
       <p style="text-align:center;margin-top:10px;font-size:12px;color:#64748b">Driver passcode: <b>7777</b></p>
     </div>
@@ -110,8 +131,15 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
   <div id="mainApp" class="hidden">
 
     <div class="nav-tabs">
-      <div class="nav-tab active" onclick="showTab('send', this)">Send</div>
-      <div class="nav-tab" onclick="showTab('receive', this)">Receive</div>
+      <button class="nav-tab active" onclick="showTab('send',this)">Send</button>
+      <button class="nav-tab" onclick="showTab('receive',this)">Receive</button>
+      <button class="nav-tab" onclick="showTab('vans',this)">All Vans</button>
+    </div>
+
+    <!-- ALWAYS-VISIBLE: all van movements strip (Send + Receive tabs) -->
+    <div id="allVansSection" class="hidden mt-10">
+      <h4 style="font-size:13px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">🗺️ Van Movements (All Branches)</h4>
+      <div id="allVansMoveList"></div>
     </div>
 
     <div id="sendTab">
@@ -149,6 +177,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
           <div class="branch-display" id="staffBranchDisplay">-</div>
         </div>
 
+        <!-- INCOMING VANS -->
         <div id="incomingVansSection" class="hidden mt-10">
           <h4 style="font-size:13px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">🚐 Incoming Vans</h4>
           <div id="incomingVansList"></div>
@@ -187,6 +216,14 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
       </div>
     </div>
 
+    <!-- ALL VANS TAB — company-wide board with large van cards -->
+    <div id="vansTab" class="hidden">
+      <div class="card">
+        <h4>🚐 All Van Movement</h4>
+        <div id="vansTabList"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -204,7 +241,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 </div>
 
 <script>
-const APP_VERSION = "v15-final";
+const APP_VERSION = "v10-simple-timer";
 let SCRIPT_URL = localStorage.getItem('ncm_url') || "";
 let currentBranch = "";
 let currentRole = "";
@@ -217,9 +254,21 @@ let barcodeDetector = null;
 let camStream = null;
 let isScanning = false;
 let recvTimer = null;
-let vanTimerInterval = null;
-let vanPollInterval = null;
 const RECV_AUTO_DELAY = 600;
+
+/* ===================== POLL + TICK INTERVALS =====================
+   Four separate interval handles — NO duplicates:
+   vanPollInterval    : fetch incoming vans from server (Receive tab)
+   vanTickInterval    : tick incoming-van timers every second
+   allVansPollInterval: fetch all-van movements from server (Send strip + Vans tab)
+   allVansTickInterval: tick all-van timers every second
+*/
+let vanPollInterval    = null;
+let vanTickInterval    = null;
+let allVansPollInterval = null;
+let allVansTickInterval = null;
+
+/* ===================== INIT ===================== */
 
 function init() {
   const savedVersion = localStorage.getItem('ncm_version');
@@ -291,10 +340,8 @@ async function login() {
         driverBranches = res.branches || [];
       }
       localStorage.setItem('ncm_session', JSON.stringify({
-        branch: currentBranch,
-        role: currentRole,
-        destinations: currentDestinations,
-        branches: driverBranches
+        branch: currentBranch, role: currentRole,
+        destinations: currentDestinations, branches: driverBranches
       }));
       showApp();
       toast('Welcome ' + (currentBranch || 'Driver'), 'ok');
@@ -319,7 +366,6 @@ function showApp() {
     badge.innerText = 'DRIVER';
     driverBox.classList.remove('hidden');
     staffBox.classList.add('hidden');
-
     const grid = document.getElementById('branchGrid');
     grid.innerHTML = "";
     driverBranches.forEach((b, idx) => {
@@ -335,7 +381,6 @@ function showApp() {
       grid.appendChild(div);
     });
     if (driverBranches.length) currentBranch = driverBranches[0];
-
   } else {
     badge.className = '';
     badge.innerText = '';
@@ -352,6 +397,9 @@ function showApp() {
     destSel.appendChild(opt);
   });
   document.getElementById('originBranchDisplay').value = currentRole === 'driver' ? 'DRIVER' : currentBranch;
+
+  // Start the always-visible movements strip immediately
+  startAllVansPolling();
 }
 
 function showTab(tab, el) {
@@ -359,8 +407,19 @@ function showTab(tab, el) {
   el.classList.add('active');
   document.getElementById('sendTab').classList.toggle('hidden', tab !== 'send');
   document.getElementById('receiveTab').classList.toggle('hidden', tab !== 'receive');
-  if (tab === 'receive') startVanPolling();
-  else stopVanPolling();
+  document.getElementById('vansTab').classList.toggle('hidden', tab !== 'vans');
+
+  // Stop incoming-van polling when leaving Receive tab
+  stopVanPolling();
+
+  if (tab === 'receive') {
+    startVanPolling();           // incoming vans for this branch
+    startAllVansPolling();       // movements strip stays visible
+  } else if (tab === 'vans') {
+    startAllVansPolling();       // loads big van-card board too
+  } else {
+    startAllVansPolling();       // Send tab: strip stays visible
+  }
 }
 
 function logout() {
@@ -371,12 +430,12 @@ function logout() {
 function getActiveBranch() {
   if (currentRole === 'driver') {
     const selected = document.querySelector('.branch-card.selected');
-    return selected ? selected.innerText.replace('🏢', '').trim() : currentBranch;
+    return selected ? selected.innerText.replace('🏢','').trim() : currentBranch;
   }
   return currentBranch;
 }
 
-/* ===================== INCOMING VANS ===================== */
+/* ===================== INCOMING VANS (Receive tab) ===================== */
 
 function startVanPolling() {
   loadIncomingVans();
@@ -385,8 +444,8 @@ function startVanPolling() {
 }
 
 function stopVanPolling() {
-  if (vanPollInterval) clearInterval(vanPollInterval);
-  stopVanTimers();
+  if (vanPollInterval)  { clearInterval(vanPollInterval);  vanPollInterval  = null; }
+  if (vanTickInterval)  { clearInterval(vanTickInterval);  vanTickInterval  = null; }
 }
 
 async function loadIncomingVans() {
@@ -394,82 +453,199 @@ async function loadIncomingVans() {
   if (!branch) return;
   try {
     const res = await apiGet({ action: "getIncomingVans", branch: branch });
-    if (!res.success) {
-      toast(res.error || 'Server error loading vans', 'bad');
-      return;
-    }
     const vans = res.data || [];
     const section = document.getElementById('incomingVansSection');
-    const list = document.getElementById('incomingVansList');
+    const list    = document.getElementById('incomingVansList');
+
     if (vans.length === 0) {
       section.classList.add('hidden');
-      stopVanTimers();
+      stopVanTick();
       return;
     }
+
     section.classList.remove('hidden');
-    list.innerHTML = vans.map((v, idx) => {
-      const min = safeNum(v.elapsedMinutes);
-      const sec = safeNum(v.elapsedSeconds);
-      const cls = v.isLate ? 'red' : 'green';
-      return `
-      <div class="van-card ${cls}" onclick="fillVanNo('${escapeHtml(v.vanNo)}')" id="van-${idx}">
+    list.innerHTML = vans.map((v, idx) => `
+      <div class="van-card ${v.isLate ? 'red' : 'green'}" onclick="fillVanNo('${v.vanNo}')">
         <div class="van-header">
-          <span class="van-title">Van ${escapeHtml(v.vanNo)} from ${escapeHtml(v.origin)}</span>
-          <span class="van-timer" id="timer-${idx}" data-min="${min}" data-sec="${sec}">${pad(min)}:${pad(sec)}</span>
+          <span class="van-title">Van ${v.vanNo} from ${v.origin}</span>
         </div>
-        <div class="van-meta">${safeNum(v.count)} shipment(s) coming — Tap to select</div>
-      </div>`;
-    }).join('');
-    startVanTimers();
-  } catch(e) {
-    toast('Failed to load vans: ' + e.message, 'bad');
-  }
+        <div class="van-timer" id="inVanTimer_${idx}"
+             data-min="${v.elapsedMinutes}" data-sec="${v.elapsedSeconds}">
+          ${fmt(v.elapsedMinutes, v.elapsedSeconds)}
+        </div>
+        <div class="van-meta">${v.count} shipment(s) coming — Tap to select</div>
+      </div>
+    `).join('');
+
+    startVanTick();
+  } catch(e) {}
 }
 
-function safeNum(v) {
-  var n = parseInt(v);
-  return isNaN(n) ? 0 : n;
-}
-
-function escapeHtml(text) {
-  var div = document.createElement('div');
-  div.appendChild(document.createTextNode(text));
-  return div.innerHTML;
-}
-
-function pad(n) {
-  var num = safeNum(n);
-  return String(num).padStart(2, '0');
-}
-
-function startVanTimers() {
-  if (vanTimerInterval) clearInterval(vanTimerInterval);
-  vanTimerInterval = setInterval(() => {
-    document.querySelectorAll('.van-timer').forEach(el => {
-      let min = safeNum(el.dataset.min);
-      let sec = safeNum(el.dataset.sec);
-      sec++;
-      if (sec >= 60) { sec = 0; min++; }
-      el.dataset.min = min;
-      el.dataset.sec = sec;
-      el.innerText = pad(min) + ':' + pad(sec);
+function startVanTick() {
+  if (vanTickInterval) clearInterval(vanTickInterval);
+  vanTickInterval = setInterval(() => {
+    document.querySelectorAll('[id^="inVanTimer_"]').forEach(el => {
+      let min = +el.dataset.min, sec = +el.dataset.sec;
+      sec++; if (sec >= 60) { sec = 0; min++; }
+      el.dataset.min = min; el.dataset.sec = sec;
+      el.innerText = fmt(min, sec);
       const card = el.closest('.van-card');
-      if (min >= 20 && card && card.classList.contains('green')) {
-        card.classList.remove('green');
-        card.classList.add('red');
+      if (card) {
+        card.classList.toggle('red',   min >= 20);
+        card.classList.toggle('green', min < 20);
       }
     });
   }, 1000);
 }
 
-function stopVanTimers() {
-  if (vanTimerInterval) clearInterval(vanTimerInterval);
+function stopVanTick() {
+  if (vanTickInterval) { clearInterval(vanTickInterval); vanTickInterval = null; }
 }
 
 function fillVanNo(van) {
   document.getElementById('recvVanNo').value = van;
   fetchPending();
   toast('Van ' + van + ' selected', 'ok');
+}
+
+/* ===================== ALL VANS — movements strip + vans tab ===================== */
+
+function startAllVansPolling() {
+  loadAllVans();
+  if (allVansPollInterval) clearInterval(allVansPollInterval);
+  allVansPollInterval = setInterval(loadAllVans, 10000);
+
+  if (allVansTickInterval) clearInterval(allVansTickInterval);
+  allVansTickInterval = setInterval(tickAllVansTimers, 1000);
+}
+
+function stopAllVansPolling() {
+  if (allVansPollInterval) { clearInterval(allVansPollInterval); allVansPollInterval = null; }
+  if (allVansTickInterval) { clearInterval(allVansTickInterval); allVansTickInterval = null; }
+}
+
+async function loadAllVans() {
+  try {
+    const res = await apiGet({ action: "getAllVans" });
+    const vans = res.data || [];
+
+    // Sort: moving first
+    const sorted = [...vans].sort((a, b) => {
+      if (a.status === 'moving' && b.status !== 'moving') return -1;
+      if (a.status !== 'moving' && b.status === 'moving') return 1;
+      return 0;
+    });
+
+    renderAllVansStrip(sorted);   // always-visible move-card strip
+    renderVansTabBoard(sorted);   // big van-card board on Vans tab
+  } catch(e) {}
+}
+
+// ── Always-visible strip (Send + Receive tabs) ────────────────────────────
+function renderAllVansStrip(vans) {
+  const section = document.getElementById('allVansSection');
+  const list    = document.getElementById('allVansMoveList');
+  const moving  = vans.filter(v => v.status === 'moving');
+
+  if (moving.length === 0) {
+    section.classList.add('hidden');
+    return;
+  }
+  section.classList.remove('hidden');
+
+  list.innerHTML = vans.map((v, idx) => {
+    if (v.status === 'moving') {
+      const roundLabel = v.roundLabel ? 'Round ' + v.roundLabel + ' · ' : '';
+      return `
+        <div class="move-card moving ${v.isLate ? 'late' : ''}"
+             data-depart-min="${v.elapsedMinutes}" data-depart-sec="${v.elapsedSeconds}">
+          <span class="move-timer ${v.isLate ? 'late' : 'ontime'}">${fmt(v.elapsedMinutes, v.elapsedSeconds)}</span>
+          <div class="move-route">Van ${v.vanNo}: ${v.fromBranch}<span class="arrow">→</span>${v.toBranch}</div>
+          <div class="move-sub">${roundLabel}${v.isLate ? 'Running long' : 'On schedule'}</div>
+        </div>`;
+    } else if (v.status === 'off_duty') {
+      return `
+        <div class="move-card off-duty">
+          <div class="move-route">Van ${v.vanNo}</div>
+          <div class="move-sub">Off duty for today — parked at ${v.lastLocation}</div>
+        </div>`;
+    } else {
+      return `
+        <div class="move-card idle">
+          <div class="move-route">Van ${v.vanNo}</div>
+          <div class="move-sub">Idle — parked at ${v.lastLocation}</div>
+        </div>`;
+    }
+  }).join('');
+}
+
+// ── Vans tab board (big van cards) ────────────────────────────────────────
+function renderVansTabBoard(vans) {
+  const list = document.getElementById('vansTabList');
+  if (vans.length === 0) {
+    list.innerHTML = '<div style="padding:14px;text-align:center;color:#94a3b8;font-size:13px">No van activity yet — this fills in as shipments are sent and received.</div>';
+    return;
+  }
+  list.innerHTML = vans.map((v, idx) => {
+    if (v.status === 'moving') {
+      const roundTag = v.roundLabel ? ` · Round ${v.roundLabel}` : '';
+      return `
+        <div class="van-card ${v.isLate ? 'red' : 'green'}" id="allVanCard_${idx}">
+          <div class="van-header"><span class="van-title">Van ${v.vanNo}</span></div>
+          <div class="van-meta" style="font-size:13px;font-weight:700;margin-bottom:4px">${v.fromBranch} → ${v.toBranch}${roundTag}</div>
+          <div class="van-timer" id="allVanTimer_${idx}"
+               data-min="${v.elapsedMinutes}" data-sec="${v.elapsedSeconds}">
+            ${fmt(v.elapsedMinutes, v.elapsedSeconds)}
+          </div>
+          <div class="van-meta">Last update: just now (live)</div>
+        </div>`;
+    } else if (v.status === 'off_duty') {
+      return `
+        <div class="van-card offduty">
+          <div class="van-header"><span class="van-title">Van ${v.vanNo}</span></div>
+          <div class="van-meta">Off duty for today — parked at ${v.lastLocation}</div>
+        </div>`;
+    } else {
+      return `
+        <div class="van-card grey">
+          <div class="van-header"><span class="van-title">Van ${v.vanNo}</span></div>
+          <div class="van-meta">Idle — parked at ${v.lastLocation}</div>
+        </div>`;
+    }
+  }).join('');
+}
+
+// ── Tick all moving-van timers every second ───────────────────────────────
+function tickAllVansTimers() {
+  // Tick the always-visible move-card strip
+  document.querySelectorAll('#allVansMoveList .move-card[data-depart-min]').forEach(card => {
+    let min = +card.getAttribute('data-depart-min');
+    let sec = +card.getAttribute('data-depart-sec');
+    sec++; if (sec >= 60) { sec = 0; min++; }
+    card.setAttribute('data-depart-min', min);
+    card.setAttribute('data-depart-sec', sec);
+    const timerEl = card.querySelector('.move-timer');
+    if (timerEl) timerEl.innerText = fmt(min, sec);
+    const isLate = min >= 20;
+    card.classList.toggle('late', isLate);
+    if (timerEl) {
+      timerEl.classList.toggle('late',   isLate);
+      timerEl.classList.toggle('ontime', !isLate);
+    }
+  });
+
+  // Tick the big van-card timers on the Vans tab
+  document.querySelectorAll('[id^="allVanTimer_"]').forEach(el => {
+    let min = +el.dataset.min, sec = +el.dataset.sec;
+    sec++; if (sec >= 60) { sec = 0; min++; }
+    el.dataset.min = min; el.dataset.sec = sec;
+    el.innerText = fmt(min, sec);
+    const card = el.closest('.van-card');
+    if (card) {
+      card.classList.toggle('red',   min >= 20);
+      card.classList.toggle('green', min < 20);
+    }
+  });
 }
 
 /* ===================== CHIPS ===================== */
@@ -530,8 +706,7 @@ function updateRecvBtn() {
 function handleSendInput(el) {
   const val = el.value;
   if (val.includes('\n')) {
-    const parts = val.split('\n');
-    parts.forEach(p => { if (p.trim()) addChip(p, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here'); });
+    val.split('\n').forEach(p => { if (p.trim()) addChip(p, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here'); });
     el.value = "";
   }
 }
@@ -545,36 +720,32 @@ function sendKey(e) {
 function sendPaste(e) {
   setTimeout(() => {
     const val = e.target.value;
-    const parts = val.split(/[\n,]+/);
-    parts.forEach(p => { if (p.trim()) addChip(p, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here'); });
+    val.split(/[\n,]+/).forEach(p => { if (p.trim()) addChip(p, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here'); });
     e.target.value = "";
   }, 10);
 }
 
 async function sendShipments() {
   const dest = document.getElementById('destBranch').value;
-  const van = document.getElementById('sendVanNo').value.trim();
-  if (!dest) return toast('Select destination', 'bad');
-  if (!van) return toast('Enter van number', 'bad');
+  const van  = document.getElementById('sendVanNo').value.trim();
+  if (!dest)              return toast('Select destination', 'bad');
+  if (!van)               return toast('Enter van number', 'bad');
   if (sendQueue.length === 0) return toast('Scan at least one ID', 'bad');
   toast('Sending ' + sendQueue.length + ' shipments...', 'ok');
   try {
     const res = await apiPost({
       action: "sendBatch",
       origin: currentRole === 'driver' ? 'DRIVER' : currentBranch,
-      destination: dest,
-      vanNo: van,
+      destination: dest, vanNo: van,
       shipments: sendQueue.map(id => ({ shipmentId: id }))
     });
     if (res.success) {
       let msg = res.sent + ' sent';
-      let bad = 0;
       if (res.results) {
         const dupes = res.results.filter(r => r.status === 'duplicate');
         if (dupes.length) msg += ' | ' + dupes.length + ' already in transit';
-        bad = res.results.filter(r => r.status === 'failed').length;
       }
-      toast(msg, bad ? 'warn' : 'ok');
+      toast(msg, 'ok');
       sendQueue = [];
       renderChips('sendChipList', [], 'Scan or paste shipment IDs here');
       document.getElementById('sendCount').innerText = '0';
@@ -589,8 +760,7 @@ async function sendShipments() {
 function handleRecvInput(el) {
   const val = el.value;
   if (val.includes('\n')) {
-    const parts = val.split('\n');
-    parts.forEach(p => { if (p.trim()) pushRecv(p); });
+    val.split('\n').forEach(p => { if (p.trim()) pushRecv(p); });
     el.value = "";
   }
   scheduleRecvFlush();
@@ -606,8 +776,7 @@ function recvKey(e) {
 function recvPaste(e) {
   setTimeout(() => {
     const val = e.target.value;
-    const parts = val.split(/[\n,]+/);
-    parts.forEach(p => { if (p.trim()) pushRecv(p); });
+    val.split(/[\n,]+/).forEach(p => { if (p.trim()) pushRecv(p); });
     e.target.value = "";
     scheduleRecvFlush();
   }, 10);
@@ -624,16 +793,14 @@ function pushRecv(raw) {
 
 function scheduleRecvFlush() {
   clearTimeout(recvTimer);
-  recvTimer = setTimeout(() => {
-    if (recvQueue.length > 0) submitBatch();
-  }, RECV_AUTO_DELAY);
+  recvTimer = setTimeout(() => { if (recvQueue.length > 0) submitBatch(); }, RECV_AUTO_DELAY);
 }
 
 async function submitBatch() {
   clearTimeout(recvTimer);
-  const van = document.getElementById('recvVanNo').value.trim();
+  const van    = document.getElementById('recvVanNo').value.trim();
   const branch = getActiveBranch();
-  if (!van) return toast('Enter van number', 'bad');
+  if (!van)    return toast('Enter van number', 'bad');
   if (!branch) return toast('Select a branch first', 'bad');
   if (recvQueue.length === 0) return;
   toast('Receiving ' + recvQueue.length + ' shipments...', 'ok');
@@ -649,15 +816,15 @@ async function submitBatch() {
       fetchPending();
       loadIncomingVans();
     } else {
-      toast(res.error || 'Receive failed', 'bad');
+      toast(res.error, 'bad');
     }
-  } catch(e) { toast('Network error: ' + e.message, 'bad'); }
+  } catch(e) { toast('Network error', 'bad'); }
 }
 
 async function fetchPending() {
-  const van = document.getElementById('recvVanNo').value.trim();
+  const van    = document.getElementById('recvVanNo').value.trim();
   const branch = getActiveBranch();
-  if (!van) return toast('Enter van number first', 'bad');
+  if (!van)    return toast('Enter van number first', 'bad');
   if (!branch) return toast('Select a branch first', 'bad');
   try {
     const res = await apiGet({ action: "getPendingByVan", branch: branch, vanNo: van });
@@ -676,17 +843,14 @@ async function fetchPending() {
 }
 
 async function receiveAllSheet() {
-  const van = document.getElementById('recvVanNo').value.trim();
+  const van    = document.getElementById('recvVanNo').value.trim();
   const branch = getActiveBranch();
-  if (!van) return toast('Enter van number', 'bad');
+  if (!van)    return toast('Enter van number', 'bad');
   if (!branch) return toast('Select a branch first', 'bad');
   try {
     const res = await apiPost({ action: "receiveAll", branch: branch, vanNo: van });
     toast(res.message, res.success ? 'ok' : 'bad');
-    if (res.success) {
-      fetchPending();
-      loadIncomingVans();
-    }
+    if (res.success) { fetchPending(); loadIncomingVans(); }
   } catch(e) { toast('Error', 'bad'); }
 }
 
@@ -707,7 +871,7 @@ async function openCamera(mode) {
   scanMode = mode;
   if (mode === 'receive') {
     const van = document.getElementById('recvVanNo').value.trim();
-    if (!van) return toast('Enter Van Number first', 'bad');
+    if (!van)               return toast('Enter Van Number first', 'bad');
     if (!getActiveBranch()) return toast('Select branch first', 'bad');
   }
   await initDetector();
@@ -738,34 +902,23 @@ let lastScanTime = 0;
 async function tick() {
   if (!isScanning) return;
   const video = document.getElementById('camVideo');
-  if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-    requestAnimationFrame(tick);
-    return;
-  }
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) { requestAnimationFrame(tick); return; }
   const now = Date.now();
-  if (now - lastScanTime < 350) {
-    requestAnimationFrame(tick);
-    return;
-  }
+  if (now - lastScanTime < 350) { requestAnimationFrame(tick); return; }
   const canvas = document.getElementById('camCanvas');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   let code = null;
   if (barcodeDetector) {
-    try {
-      const codes = await barcodeDetector.detect(canvas);
-      if (codes.length) code = codes[0].rawValue;
-    } catch(e) {}
+    try { const codes = await barcodeDetector.detect(canvas); if (codes.length) code = codes[0].rawValue; }
+    catch(e) {}
   }
   if (code) {
     lastScanTime = now;
     const clean = cleanId(code);
     if (scanMode === 'send') {
-      if (addChip(clean, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here')) {
-        toast('Scanned: ' + clean, 'ok');
-      }
+      if (addChip(clean, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here')) toast('Scanned: ' + clean, 'ok');
     } else {
       if (!recvQueue.includes(clean)) {
         recvQueue.push(clean);
@@ -777,6 +930,12 @@ async function tick() {
     }
   }
   requestAnimationFrame(tick);
+}
+
+/* ===================== HELPERS ===================== */
+
+function fmt(min, sec) {
+  return String(min).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
 }
 
 function toast(msg, type) {
