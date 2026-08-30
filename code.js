@@ -28,10 +28,10 @@ const PASSCODES = {
   "9999": { role: "admin" },
   // Driver passcodes are intentionally the same as the van number for the
   // four vans supplied by the operator.
-  "1404": { role: "driver", vanNo: "1404" },
-  "843":  { role: "driver", vanNo: "843" },
-  "2266": { role: "driver", vanNo: "2266" },
-  "1836": { role: "driver", vanNo: "1836" }
+  "van 1404": { role: "driver", vanNo: "1404" },
+  "van 843":  { role: "driver", vanNo: "843" },
+  "van 2266": { role: "driver", vanNo: "2266" },
+  "van 1836": { role: "driver", vanNo: "1836" }
 };
 
 const ROUTES = {
@@ -66,6 +66,7 @@ const SUB_BRANCHES = {
 
 const MAX_ROUNDS_PER_DAY = 3;
 const EXPECTED_LEG_MINUTES = 20;
+const MIN_TRAVEL_SECONDS = 120;
 
 const COL = { DATE:1, ORIGIN:2, DEST:3, SEND_TIME:4, ID:5, VAN:6, STATUS:7, RECV_BY:8, RECV_TIME:9 };
 
@@ -121,6 +122,8 @@ function getMovementSheet() {
     ]);
     sheet.setFrozenRows(1);
     sheet.getRange(2, MOVE_COL.VAN, sheet.getMaxRows() - 1, 1).setNumberFormat('@');
+    sheet.getRange(2, MOVE_COL.ARRIVAL, sheet.getMaxRows() - 1, 2).setNumberFormat("yyyy-mm-dd hh:mm:ss");
+    sheet.getRange(2, MOVE_COL.UPDATED, sheet.getMaxRows() - 1, 1).setNumberFormat("yyyy-mm-dd hh:mm:ss");
   }
   return sheet;
 }
@@ -134,6 +137,51 @@ function getIssueSheet() {
     sheet.setFrozenRows(1);
   }
   return sheet;
+}
+
+function getVanRegistrySheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("VAN REGISTRY");
+  if (!sheet) {
+    sheet = ss.insertSheet("VAN REGISTRY");
+    sheet.appendRow(["Van No","Passcode Format","Registered Date","Last Activity Time","Status"]);
+    sheet.setFrozenRows(1);
+    sheet.getRange(2, 1, sheet.getMaxRows() - 1, 1).setNumberFormat('@');
+  }
+  return sheet;
+}
+
+function registerVan(vanNo) {
+  var target = String(vanNo || "").trim().toUpperCase();
+  if (!target || !/^[A-Z0-9][A-Z0-9-]*$/.test(target)) {
+    return { success:false, error:"Van number may contain letters, numbers, and hyphens only" };
+  }
+  var sheet = getVanRegistrySheet();
+  var values = sheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]).trim().toUpperCase() === target) {
+      sheet.getRange(i + 1, 5).setValue("ACTIVE");
+      return { success:true, vanNo:target, existing:true };
+    }
+  }
+  var now = new Date();
+  sheet.appendRow([target, "van " + target, Utilities.formatDate(now, CONFIG.TIMEZONE, "yyyy-MM-dd"), now, "ACTIVE"]);
+  return { success:true, vanNo:target, existing:false };
+}
+
+function touchVanRegistry(vanNo, status) {
+  var target = String(vanNo || "").trim().toUpperCase();
+  if (!target) return;
+  var sheet = getVanRegistrySheet();
+  var values = sheet.getDataRange().getValues();
+  var now = new Date();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]).trim().toUpperCase() === target) {
+      sheet.getRange(i + 1, 4, 1, 2).setValues([[now, status || "ACTIVE"]]);
+      return;
+    }
+  }
+  sheet.appendRow([target, "van " + target, Utilities.formatDate(now, CONFIG.TIMEZONE, "yyyy-MM-dd"), now, status || "ACTIVE"]);
 }
 
 function routeFor(routeName) {
@@ -230,6 +278,11 @@ function knownVans() {
   Object.keys(PASSCODES).forEach(function(pc) {
     if (PASSCODES[pc].role === "driver") found[PASSCODES[pc].vanNo] = true;
   });
+  var registryValues = getVanRegistrySheet().getDataRange().getValues();
+  for (var r = 1; r < registryValues.length; r++) {
+    var registeredVan = String(registryValues[r][0] || "").trim();
+    if (registeredVan) found[registeredVan] = true;
+  }
   var values = getMovementSheet().getDataRange().getValues();
   for (var i = 1; i < values.length; i++) {
     var van = String(values[i][MOVE_COL.VAN - 1] || "").trim();
@@ -277,17 +330,19 @@ function handleRouteCheckIn(data) {
 
     var sheet = getMovementSheet();
     var state = getRouteState(vanNo);
+    if (state.started && routeName && routeName !== state.route) {
+      return { success:false, error:"Route is locked for today as " + state.route };
+    }
     var route = routeFor(routeName || state.route);
     if (!route) return { success:false, error:"Choose Route 1 or Route 2 first" };
 
     var now = new Date();
-    var timeStr = Utilities.formatDate(now, CONFIG.TIMEZONE, "HH:mm:ss");
-    var stateWasMoving = state.status === "MOVING";
 
     if (!state.started) {
       if (station !== route[0]) return { success:false, error:"First check-in must be at " + route[0] };
-      sheet.appendRow([today(), vanNo, routeName, 1, 0, station, timeStr, "", 0, 0, route[1], "AT_STATION", now]);
+      sheet.appendRow([today(), vanNo, routeName, 1, 0, station, now, "", 0, 0, route[1], "AT_STATION", now]);
       updateVanStatus(vanNo, "AT_STATION", station, route[1], "", 0);
+      touchVanRegistry(vanNo, "AT_STATION");
       return { success:true, message:"Checked in at " + station, state:routeStateResponse(getRouteState(vanNo)) };
     }
 
@@ -296,11 +351,15 @@ function handleRouteCheckIn(data) {
     if (station !== state.nextStation) {
       return { success:false, error:"Expected check-in at " + state.nextStation };
     }
+    var travelSeconds = secondsBetween(state.departureTime, new Date());
+    if (travelSeconds < MIN_TRAVEL_SECONDS) {
+      return { success:false, error:"Check-in opens after 2 minutes of travel" };
+    }
 
     var rows = movementRowsForToday(vanNo);
     var previous = rows[rows.length - 1];
     var previousValues = previous.values.slice();
-    previousValues[MOVE_COL.TRAVEL_SECONDS - 1] = secondsBetween(state.departureTime, now);
+    previousValues[MOVE_COL.TRAVEL_SECONDS - 1] = travelSeconds;
     previousValues[MOVE_COL.STATUS - 1] = "COMPLETE";
     previousValues[MOVE_COL.UPDATED - 1] = now;
     sheet.getRange(previous.rowIndex, 1, 1, previousValues.length).setValues([previousValues]);
@@ -316,10 +375,11 @@ function handleRouteCheckIn(data) {
     if (finalStop) nextRound = MAX_ROUNDS_PER_DAY;
     var currentStatus = finalStop ? "OFF_DUTY" : "AT_STATION";
     sheet.appendRow([
-      today(), vanNo, state.route, nextRound, nextIndex, station, timeStr, "",
+      today(), vanNo, state.route, nextRound, nextIndex, station, now, "",
       0, secondsBetween(state.departureTime, now), nextStation, currentStatus, now
     ]);
     updateVanStatus(vanNo, finalStop ? "OFF_DUTY" : "AT_STATION", station, nextStation, "", nextRound);
+    touchVanRegistry(vanNo, finalStop ? "OFF_DUTY" : "AT_STATION");
     return {
       success:true,
       message: finalStop ? "Arrived at " + station + " — 3 rounds complete" : "Checked in at " + station,
@@ -345,12 +405,13 @@ function handleRouteCheckOut(data) {
     var sheet = getMovementSheet();
     var values = sheet.getRange(state.rowIndex, 1, 1, MOVE_COL.UPDATED).getValues()[0];
     var holdSeconds = secondsBetween(state.arrivalTime, now);
-    values[MOVE_COL.DEPARTURE - 1] = Utilities.formatDate(now, CONFIG.TIMEZONE, "HH:mm:ss");
+    values[MOVE_COL.DEPARTURE - 1] = now;
     values[MOVE_COL.HOLD_SECONDS - 1] = holdSeconds;
     values[MOVE_COL.UPDATED - 1] = now;
     values[MOVE_COL.STATUS - 1] = "MOVING";
     sheet.getRange(state.rowIndex, 1, 1, values.length).setValues([values]);
     updateVanStatus(vanNo, "MOVING", state.station, state.nextStation, now, state.round);
+    touchVanRegistry(vanNo, "MOVING");
     return { success:true, message:"Checked out — heading to " + state.nextStation, state:routeStateResponse(getRouteState(vanNo)) };
   } finally {
     lock.releaseLock();
@@ -421,20 +482,22 @@ function adminResetVan(vanNo) {
   values[MOVE_COL.UPDATED - 1] = new Date();
   sheet.getRange(state.rowIndex, 1, 1, values.length).setValues([values]);
   updateVanStatus(String(vanNo).trim(), "IDLE", state.station, "", "", state.round);
+  touchVanRegistry(vanNo, "RESET");
   return { success:true, message:"Van " + vanNo + " reset for a new route" };
 }
 
 /* ─── VAN STATUS sheet ──────────────────────────────── */
-// Columns: Van No | Status | From Branch | To Branch | Depart Time | Round Count | Last Activity Date
+// Columns: Van No | Status | From Branch | To Branch | Depart Time | Round Count | Last Activity Time
 
 function getVanStatusSheet() {
   var ss    = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName("VAN STATUS");
   if (!sheet) {
     sheet = ss.insertSheet("VAN STATUS");
-    sheet.appendRow(["Van No","Status","From Branch","To Branch","Depart Time","Round Count","Last Activity Date"]);
+    sheet.appendRow(["Van No","Status","From Branch","To Branch","Depart Time","Round Count","Last Activity Time"]);
     sheet.setFrozenRows(1);
   }
+  sheet.getRange(1, 7).setValue("Last Activity Time");
   return sheet;
 }
 
@@ -449,7 +512,10 @@ function getVanStatusRow(vanNo) {
       var lastDate   = values[i][6];
       var roundCount = Number(values[i][5]) || 0;
       // Reset round count at start of new day
-      if (lastDate && String(lastDate) !== todayStr) {
+      var lastDateStr = lastDate instanceof Date
+        ? Utilities.formatDate(lastDate, CONFIG.TIMEZONE, "yyyy-MM-dd")
+        : String(lastDate).substring(0, 10);
+      if (lastDate && lastDateStr !== todayStr) {
         roundCount = 0;
         sheet.getRange(i + 1, 6).setValue(0);
       }
@@ -471,15 +537,16 @@ function updateVanStatus(vanNo, status, fromBranch, toBranch, departTime, roundC
   var values   = sheet.getDataRange().getValues();
   var target   = String(vanNo).trim();
   var todayStr = today();
+  var activityTime = new Date();
 
   for (var i = 1; i < values.length; i++) {
     if (String(values[i][0]).trim() === target) {
       var existingRound = (roundCount !== undefined) ? roundCount : (Number(values[i][5]) || 0);
-      sheet.getRange(i + 1, 2, 1, 6).setValues([[status, fromBranch, toBranch, departTime, existingRound, todayStr]]);
+      sheet.getRange(i + 1, 2, 1, 6).setValues([[status, fromBranch, toBranch, departTime, existingRound, activityTime]]);
       return;
     }
   }
-  sheet.appendRow([target, status, fromBranch, toBranch, departTime, roundCount || 0, todayStr]);
+  sheet.appendRow([target, status, fromBranch, toBranch, departTime, roundCount || 0, activityTime]);
 }
 
 /* ─── VAN VISITS sheet — dynamic round tracking ─────────
@@ -720,8 +787,18 @@ function doGet(e) {
   if (!action) return jsonResponse({ success: false, error: "No action" });
 
   if (action === "login") {
-    var cfg = PASSCODES[e.parameter.passcode];
+    var enteredPasscode = String(e.parameter.passcode || "").trim().toLowerCase();
+    var cfg = PASSCODES[enteredPasscode];
+    if (!cfg) {
+      var vanMatch = enteredPasscode.match(/^van\s+([a-z0-9][a-z0-9-]*)$/i);
+      if (vanMatch) {
+        var registration = registerVan(vanMatch[1]);
+        if (!registration.success) return jsonResponse(registration);
+        cfg = { role:"driver", vanNo:registration.vanNo };
+      }
+    }
     if (!cfg) return jsonResponse({ success: false, error: "Invalid passcode" });
+    if (cfg.role === "driver") touchVanRegistry(cfg.vanNo, "ACTIVE");
     var res = { success: true, role: cfg.role, routes: ROUTE_LABELS };
     if (cfg.role === "branch")  { res.branch = cfg.branch; res.destinations = DESTINATIONS[cfg.branch] || []; }
     if (cfg.role === "driver")  {
