@@ -16,15 +16,14 @@ const CONFIG = {
 };
 
 const PASSCODES = {
-  // Branch/user access
+  // Branch access
   "1111": { branch: "TINKUNE",      role: "branch" },
   "2222": { branch: "CHABAHIL",     role: "branch" },
-  "3333": { branch: "NAYA BUSPARK", role: "branch" },
-  "4444": { branch: "KALANKI",      role: "branch" },
-  "5555": { branch: "SATDOBATO",    role: "branch" },
-  "6666": { branch: "NEWROAD",      role: "branch" },
-  "7001": { branch: "BASUNDHARA",   role: "branch" },
-  "7002": { branch: "SWOYAMBHU",    role: "branch" },
+  "3333": { branch: "BASUNDHARA",   role: "branch" },
+  "4444": { branch: "NAYA BUSPARK", role: "branch" },
+  "5555": { branch: "SWOYAMBHU",    role: "branch" },
+  "6666": { branch: "KALANKI",      role: "branch" },
+  "7777": { branch: "SATDOBATO",    role: "branch" },
   "9999": { role: "admin" },
   // Driver passcodes are intentionally the same as the van number for the
   // four vans supplied by the operator.
@@ -65,7 +64,7 @@ const SUB_BRANCHES = {
 };
 
 const MAX_ROUNDS_PER_DAY = 3;
-const EXPECTED_LEG_MINUTES = 20;
+const EXPECTED_LEG_MINUTES = 10;
 const MIN_TRAVEL_SECONDS = 120;
 
 const COL = { DATE:1, ORIGIN:2, DEST:3, SEND_TIME:4, ID:5, VAN:6, STATUS:7, RECV_BY:8, RECV_TIME:9 };
