@@ -183,8 +183,63 @@ function touchVanRegistry(vanNo, status) {
   sheet.appendRow([target, "van " + target, Utilities.formatDate(now, CONFIG.TIMEZONE, "yyyy-MM-dd"), now, status || "ACTIVE"]);
 }
 
+function getRouteConfigSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("ROUTE CONFIG");
+  if (!sheet) {
+    sheet = ss.insertSheet("ROUTE CONFIG");
+    sheet.appendRow(["Route Name","Stations","Status","Created At"]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function getConfiguredRoutes() {
+  var configured = {};
+  Object.keys(ROUTES).forEach(function(name) { configured[name] = ROUTES[name].slice(); });
+  var values = getRouteConfigSheet().getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    var name = String(values[i][0] || "").trim().toUpperCase();
+    var active = String(values[i][2] || "ACTIVE").toUpperCase() !== "INACTIVE";
+    var stops = String(values[i][1] || "").split(",").map(function(s) {
+      return s.trim().toUpperCase();
+    }).filter(Boolean);
+    if (name && active && stops.length >= 2) configured[name] = stops;
+  }
+  return configured;
+}
+
+function getRouteLabels() {
+  var routes = getConfiguredRoutes();
+  var labels = {};
+  Object.keys(routes).forEach(function(name) {
+    labels[name] = routes[name].join(" → ");
+  });
+  return labels;
+}
+
 function routeFor(routeName) {
-  return ROUTES[routeName] || null;
+  return getConfiguredRoutes()[routeName] || null;
+}
+
+function createRoute(data) {
+  if (String(data.role || "").toLowerCase() !== "admin") {
+    return { success:false, error:"Admin access required" };
+  }
+  var name = String(data.routeName || "").trim().toUpperCase();
+  var stops = String(data.stations || "").split(",").map(function(s) {
+    return s.trim().toUpperCase();
+  }).filter(Boolean);
+  if (!name || !/^[A-Z0-9][A-Z0-9 _-]*$/.test(name)) {
+    return { success:false, error:"Use a simple route name, for example ROUTE 3" };
+  }
+  if (stops.length < 2 || stops[0] !== stops[stops.length - 1]) {
+    return { success:false, error:"The route must have at least 2 stations and end at its starting station" };
+  }
+  var routes = getConfiguredRoutes();
+  if (routes[name]) return { success:false, error:"That route already exists" };
+  getRouteConfigSheet().appendRow([name, stops.join(","), "ACTIVE", new Date()]);
+  return { success:true, message:name + " created", route:name, stations:stops };
 }
 
 function secondsBetween(a, b) {
@@ -231,7 +286,7 @@ function getRouteState(vanNo) {
     vanNo: String(v[MOVE_COL.VAN - 1]).trim(),
     started: true,
     route: String(v[MOVE_COL.ROUTE - 1]),
-    routeLabel: ROUTE_LABELS[String(v[MOVE_COL.ROUTE - 1])] || "",
+    routeLabel: getRouteLabels()[String(v[MOVE_COL.ROUTE - 1])] || "",
     round: Number(v[MOVE_COL.ROUND - 1]) || 1,
     stopIndex: Number(v[MOVE_COL.STOP - 1]) || 0,
     station: v[MOVE_COL.STATION - 1],
@@ -798,17 +853,17 @@ function doGet(e) {
     }
     if (!cfg) return jsonResponse({ success: false, error: "Invalid passcode" });
     if (cfg.role === "driver") touchVanRegistry(cfg.vanNo, "ACTIVE");
-    var res = { success: true, role: cfg.role, routes: ROUTE_LABELS };
+    var res = { success: true, role: cfg.role, routes: getRouteLabels() };
     if (cfg.role === "branch")  { res.branch = cfg.branch; res.destinations = DESTINATIONS[cfg.branch] || []; }
     if (cfg.role === "driver")  {
       res.vanNo = cfg.vanNo;
-      res.routes = ROUTE_LABELS;
+      res.routes = getRouteLabels();
     }
     return jsonResponse(res);
   }
 
   if (action === "getRoutes") {
-    return jsonResponse({ success:true, routes:ROUTES, labels:ROUTE_LABELS, maxRounds:MAX_ROUNDS_PER_DAY });
+    return jsonResponse({ success:true, routes:getConfiguredRoutes(), labels:getRouteLabels(), maxRounds:MAX_ROUNDS_PER_DAY });
   }
 
   if (action === "getRouteState") {
@@ -851,6 +906,7 @@ function doPost(e) {
   switch (body.action) {
     case 'routeCheckIn':  return jsonResponse(handleRouteCheckIn(body));
     case 'routeCheckOut': return jsonResponse(handleRouteCheckOut(body));
+    case 'createRoute':   return jsonResponse(createRoute(body));
     case 'submitIssue':   return jsonResponse(submitIssue(body));
     case 'closeIssue':    return jsonResponse(closeIssue(body.row));
     case 'adminResetVan': return jsonResponse(adminResetVan(body.vanNo));
