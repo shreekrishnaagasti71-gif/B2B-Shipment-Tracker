@@ -106,7 +106,7 @@ function today() {
 const MOVE_COL = {
   DATE:1, VAN:2, ROUTE:3, ROUND:4, STOP:5, STATION:6,
   ARRIVAL:7, DEPARTURE:8, HOLD_SECONDS:9, TRAVEL_SECONDS:10,
-  NEXT_STATION:11, STATUS:12, UPDATED:13
+  NEXT_STATION:11, STATUS:12, UPDATED:13, HOLD_TIME:14
 };
 
 function getMovementSheet() {
@@ -117,12 +117,15 @@ function getMovementSheet() {
     sheet.appendRow([
       "Date","Van No","Route","Round","Stop No","Station",
       "Check In","Check Out","Hold Seconds","Travel Seconds",
-      "Next Station","Status","Last Updated"
+      "Next Station","Status","Last Updated","Hold Time"
     ]);
     sheet.setFrozenRows(1);
     sheet.getRange(2, MOVE_COL.VAN, sheet.getMaxRows() - 1, 1).setNumberFormat('@');
     sheet.getRange(2, MOVE_COL.ARRIVAL, sheet.getMaxRows() - 1, 2).setNumberFormat("yyyy-mm-dd hh:mm:ss");
     sheet.getRange(2, MOVE_COL.UPDATED, sheet.getMaxRows() - 1, 1).setNumberFormat("yyyy-mm-dd hh:mm:ss");
+  } else if (sheet.getLastColumn() < MOVE_COL.HOLD_TIME) {
+    // Keep existing movement sheets compatible while adding a readable hold value.
+    sheet.getRange(1, MOVE_COL.HOLD_TIME).setValue("Hold Time");
   }
   return sheet;
 }
@@ -247,6 +250,14 @@ function secondsBetween(a, b) {
   var second = b instanceof Date ? b : new Date(b);
   if (isNaN(first.getTime()) || isNaN(second.getTime())) return 0;
   return Math.max(0, Math.floor((second.getTime() - first.getTime()) / 1000));
+}
+
+function holdTimeLabel(seconds) {
+  var total = Math.max(0, Math.floor(Number(seconds) || 0));
+  var hours = Math.floor(total / 3600);
+  var minutes = Math.floor((total % 3600) / 60);
+  if (hours) return hours + " hr" + (minutes ? " " + minutes + " min" : "");
+  return minutes + " min";
 }
 
 function movementRowsForToday(vanNo) {
@@ -464,6 +475,7 @@ function handleRouteCheckOut(data) {
     values[MOVE_COL.UPDATED - 1] = now;
     values[MOVE_COL.STATUS - 1] = "MOVING";
     sheet.getRange(state.rowIndex, 1, 1, values.length).setValues([values]);
+    sheet.getRange(state.rowIndex, MOVE_COL.HOLD_TIME).setValue(holdTimeLabel(holdSeconds));
     updateVanStatus(vanNo, "MOVING", state.station, state.nextStation, now, state.round);
     touchVanRegistry(vanNo, "MOVING");
     return { success:true, message:"Checked out — heading to " + state.nextStation, state:routeStateResponse(getRouteState(vanNo)) };
@@ -486,6 +498,7 @@ function getMovementHistory(vanNo, dateStr) {
         station: values[i][MOVE_COL.STATION - 1], checkIn: values[i][MOVE_COL.ARRIVAL - 1],
         checkOut: values[i][MOVE_COL.DEPARTURE - 1],
         holdSeconds: Number(values[i][MOVE_COL.HOLD_SECONDS - 1]) || 0,
+        holdTime: values[i][MOVE_COL.HOLD_TIME - 1] || holdTimeLabel(values[i][MOVE_COL.HOLD_SECONDS - 1]),
         travelSeconds: Number(values[i][MOVE_COL.TRAVEL_SECONDS - 1]) || 0,
         nextStation: values[i][MOVE_COL.NEXT_STATION - 1],
         status: values[i][MOVE_COL.STATUS - 1]
@@ -899,22 +912,26 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  var body;
-  try { body = JSON.parse(e.postData.contents); }
-  catch (err) { return jsonResponse({ success: false, error: "Bad JSON" }); }
+  try {
+    var body;
+    try { body = JSON.parse(e.postData.contents); }
+    catch (err) { return jsonResponse({ success: false, error: "Bad JSON" }); }
 
-  switch (body.action) {
-    case 'routeCheckIn':  return jsonResponse(handleRouteCheckIn(body));
-    case 'routeCheckOut': return jsonResponse(handleRouteCheckOut(body));
-    case 'createRoute':   return jsonResponse(createRoute(body));
-    case 'submitIssue':   return jsonResponse(submitIssue(body));
-    case 'closeIssue':    return jsonResponse(closeIssue(body.row));
-    case 'adminResetVan': return jsonResponse(adminResetVan(body.vanNo));
-    case 'sendBatch':    return jsonResponse(handleSendBatch(body));
-    case 'receiveBatch': return jsonResponse(handleReceiveBatch(body));
-    case 'receiveOne':   return jsonResponse(handleReceiveOne(body));
-    case 'receiveAll':   return jsonResponse(handleReceiveAll(body));
-    default:             return jsonResponse({ success: false, error: 'Unknown action' });
+    switch (body.action) {
+      case 'routeCheckIn':  return jsonResponse(handleRouteCheckIn(body));
+      case 'routeCheckOut': return jsonResponse(handleRouteCheckOut(body));
+      case 'createRoute':   return jsonResponse(createRoute(body));
+      case 'submitIssue':   return jsonResponse(submitIssue(body));
+      case 'closeIssue':    return jsonResponse(closeIssue(body.row));
+      case 'adminResetVan': return jsonResponse(adminResetVan(body.vanNo));
+      case 'sendBatch':    return jsonResponse(handleSendBatch(body));
+      case 'receiveBatch': return jsonResponse(handleReceiveBatch(body));
+      case 'receiveOne':   return jsonResponse(handleReceiveOne(body));
+      case 'receiveAll':   return jsonResponse(handleReceiveAll(body));
+      default:             return jsonResponse({ success: false, error: 'Unknown action' });
+    }
+  } catch (err) {
+    return jsonResponse({ success:false, error:"Server error: " + (err.message || err.toString()) });
   }
 }
 
