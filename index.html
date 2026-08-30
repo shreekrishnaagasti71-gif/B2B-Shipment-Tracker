@@ -105,6 +105,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .hidden{display:none!important}
 .mt-10{margin-top:10px}.mt-15{margin-top:15px}.flex{display:flex;gap:8px}.flex-1{flex:1}
 .route-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.route-choice.full{grid-template-columns:1fr}
 .route-option{border:2px solid #e2e8f0;border-radius:10px;padding:12px;cursor:pointer;text-align:left;background:#fff}
 .route-option.selected{border-color:#2563eb;background:#eff6ff}
 .route-option strong{display:block;color:#2563eb;font-size:14px;margin-bottom:4px}
@@ -131,6 +132,10 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .issue-row:last-child{border-bottom:none}
 .issue-text{color:#1e293b;font-weight:600;margin:3px 0}
 .admin-action{padding:5px 8px;font-size:11px}
+.route-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.route-actions .btn{font-size:12px;padding:12px 6px}
+.btn-outline-red{background:#fff;color:#dc2626;border:2px solid #dc2626}.btn-outline-red:hover{background:#fee2e2}
+.route-actions .btn:disabled{opacity:.45;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -177,20 +182,16 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
           Select your route once. At every station tap Check In when you arrive,
           then Check Out when you leave. No shipment scan is required.
         </p>
-        <div class="route-choice" id="routeChoice">
-          <button class="route-option" data-route="ROUTE 1" onclick="chooseRoute('ROUTE 1')">
-            <strong>Route 1</strong><span>Tinkune → Chabahil → Basundhara → Naya Buspark → Swoyambhu → Kalanki → Satdobato → Tinkune</span>
-          </button>
-          <button class="route-option" data-route="ROUTE 2" onclick="chooseRoute('ROUTE 2')">
-            <strong>Route 2</strong><span>Tinkune → Satdobato → Kalanki → Swoyambhu → Naya Buspark → Basundhara → Chabahil → Tinkune</span>
-          </button>
-        </div>
+        <div class="route-choice" id="routeChoice"></div>
         <div id="routeStateBox" class="route-state">
           <h3 id="routeStateTitle">Choose Route at Tinkune</h3>
           <p id="routeStateText">Your first action starts Round 1 at Tinkune.</p>
           <div class="route-stops" id="routeStops"></div>
           <div class="route-state big-time" id="routeTimer" style="display:none">00:00</div>
-          <button class="btn btn-green mt-10" id="routeActionBtn" onclick="routeAction()">CHECK IN AT TINKUNE</button>
+          <div class="route-actions">
+            <button class="btn btn-green" id="routeCheckInBtn" onclick="routeCheckIn()">CHECK IN AT TINKUNE</button>
+            <button class="btn btn-outline-red" id="routeCheckOutBtn" onclick="routeCheckOut()" disabled>CHECK OUT — CHECK IN FIRST</button>
+          </div>
         </div>
       </div>
 
@@ -206,6 +207,15 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
         <h4>🛠 Admin — All Van Control</h4>
         <p style="font-size:12px;color:#64748b;margin-bottom:8px">Live route status for every van. Reset keeps the movement history and allows a corrected route start.</p>
         <div id="adminVanList"></div>
+      </div>
+      <div class="card">
+        <h4>➕ Create New Route</h4>
+        <p style="font-size:12px;color:#64748b;margin-bottom:8px">Add a route as a comma-separated circular list. The first and last station must be the same.</p>
+        <label>Route Name</label>
+        <input id="newRouteName" placeholder="Example: ROUTE 3">
+        <label class="mt-10">Stations in Order</label>
+        <textarea id="newRouteStops" style="width:100%;min-height:78px;resize:vertical;padding:11px;font:15px inherit;border:1.5px solid #e2e8f0;border-radius:8px" placeholder="TINKUNE, KALANKI, SATDOBATO, TINKUNE"></textarea>
+        <button class="btn btn-blue mt-10" onclick="createRoute()">SAVE NEW ROUTE</button>
       </div>
       <div class="card">
         <div class="pending-header"><h4 style="margin:0">⚠ Open Issues</h4><button class="btn btn-grey btn-small" onclick="loadIssues()">↻ Refresh</button></div>
@@ -254,6 +264,10 @@ let currentDestinations = [];
 let driverBranches = [];
 let selectedRoute = localStorage.getItem('ncm_route') || "";
 let selectedRouteDay = localStorage.getItem('ncm_route_day') || "";
+let availableRoutes = {
+  "ROUTE 1": ["TINKUNE","CHABAHIL","BASUNDHARA","NAYA BUSPARK","SWOYAMBHU","KALANKI","SATDOBATO","TINKUNE"],
+  "ROUTE 2": ["TINKUNE","SATDOBATO","KALANKI","SWOYAMBHU","NAYA BUSPARK","BASUNDHARA","CHABAHIL","TINKUNE"]
+};
 let routeState = null;
 let routePollInterval = null;
 let routeTickInterval = null;
@@ -415,6 +429,7 @@ function showApp() {
   }
 
   startRoutePolling();
+  loadRoutes();
   if (currentRole === 'admin') loadIssues();
   startAllVansPolling();
 }
@@ -464,6 +479,49 @@ function chooseRoute(route) {
   renderRouteState();
 }
 
+async function loadRoutes() {
+  try {
+    const res = await apiGet({ action:'getRoutes' });
+    if (!res.success || !res.routes) return;
+    availableRoutes = res.routes;
+    if (currentRole === 'driver') {
+      if (routeState && routeState.route) selectedRoute = routeState.route;
+      else if (!availableRoutes[selectedRoute]) selectedRoute = '';
+      renderRouteOptions();
+      renderRouteState();
+    }
+  } catch(e) {}
+}
+
+function renderRouteOptions() {
+  const box = document.getElementById('routeChoice');
+  if (!box) return;
+  const names = Object.keys(availableRoutes);
+  box.classList.toggle('full', names.length === 1);
+  box.innerHTML = names.map(name =>
+    '<button class="route-option" data-route="' + escapeHtml(name) + '" onclick="chooseRoute(\'' +
+      escapeHtml(name).replace(/'/g, "\\'") + '\')">' +
+      '<strong>' + escapeHtml(name) + '</strong><span>' +
+      escapeHtml(availableRoutes[name].join(' → ')) + '</span></button>'
+  ).join('');
+}
+
+async function createRoute() {
+  if (currentRole !== 'admin') return toast('Admin access required', 'bad');
+  const name = document.getElementById('newRouteName').value.trim();
+  const stops = document.getElementById('newRouteStops').value.trim();
+  if (!name || !stops) return toast('Enter route name and stations', 'bad');
+  try {
+    const res = await apiPost({ action:'createRoute', role:'admin', routeName:name, stations:stops });
+    toast(res.message || res.error, res.success ? 'ok' : 'bad');
+    if (res.success) {
+      document.getElementById('newRouteName').value = '';
+      document.getElementById('newRouteStops').value = '';
+      await loadRoutes();
+    }
+  } catch(e) { toast('Network error', 'bad'); }
+}
+
 async function loadRouteState() {
   if (currentRole !== 'driver' || !currentVanNo) return;
   try {
@@ -476,10 +534,10 @@ async function loadRouteState() {
   } catch(e) {}
 }
 
-async function routeAction() {
+async function routeCheckIn() {
   if (currentRole !== 'driver' || !currentVanNo) return toast('Driver session is missing', 'bad');
   if (!routeState || !routeState.started) {
-    if (!selectedRoute) return toast('Choose Route 1 or Route 2', 'bad');
+    if (!selectedRoute) return toast('Choose a route first', 'bad');
     return sendRouteEvent('routeCheckIn', 'TINKUNE', selectedRoute);
   }
   if (routeState.status === 'MOVING') {
@@ -488,15 +546,29 @@ async function routeAction() {
     }
     return sendRouteEvent('routeCheckIn', routeState.nextStation, routeState.route);
   }
-  if (routeState.status === 'AT_STATION') {
-    return sendRouteEvent('routeCheckOut', routeState.station, routeState.route);
+  return toast('The van is already checked in at ' + (routeState.station || 'this station'), 'warn');
+}
+
+async function routeCheckOut() {
+  if (currentRole !== 'driver' || !currentVanNo) return toast('Driver session is missing', 'bad');
+  if (!routeState || routeState.status !== 'AT_STATION') {
+    return toast('Check in at the station before checking out', 'warn');
   }
-  toast('This van has completed today’s route', 'warn');
+  return sendRouteEvent('routeCheckOut', routeState.station, routeState.route);
+}
+
+// Backward-compatible handler for any cached page still calling the old button.
+async function routeAction() {
+  if (routeState && routeState.status === 'AT_STATION') return routeCheckOut();
+  return routeCheckIn();
 }
 
 async function sendRouteEvent(action, station, route) {
-  const button = document.getElementById('routeActionBtn');
-  button.disabled = true;
+  const buttons = [
+    document.getElementById('routeCheckInBtn'),
+    document.getElementById('routeCheckOutBtn')
+  ].filter(Boolean);
+  buttons.forEach(button => button.disabled = true);
   try {
     const body = { action: action, vanNo: currentVanNo, station: station, route: route };
     const res = await apiPost(body);
@@ -509,7 +581,8 @@ async function sendRouteEvent(action, station, route) {
   } catch(e) {
     toast('Network error — try again', 'bad');
   } finally {
-    button.disabled = false;
+    buttons.forEach(button => button.disabled = false);
+    renderRouteState();
   }
 }
 
@@ -530,19 +603,20 @@ function renderRouteState() {
   const box = document.getElementById('routeStateBox');
   const title = document.getElementById('routeStateTitle');
   const text = document.getElementById('routeStateText');
-  const btn = document.getElementById('routeActionBtn');
+  const checkInBtn = document.getElementById('routeCheckInBtn');
+  const checkOutBtn = document.getElementById('routeCheckOutBtn');
   const timer = document.getElementById('routeTimer');
   const stops = document.getElementById('routeStops');
-  const route = selectedRoute === 'ROUTE 2'
-    ? ['TINKUNE','SATDOBATO','KALANKI','SWOYAMBHU','NAYA BUSPARK','BASUNDHARA','CHABAHIL','TINKUNE']
-    : ['TINKUNE','CHABAHIL','BASUNDHARA','NAYA BUSPARK','SWOYAMBHU','KALANKI','SATDOBATO','TINKUNE'];
+  const route = availableRoutes[selectedRoute] || availableRoutes['ROUTE 1'] || [];
 
   if (!routeState || !routeState.started) {
     document.getElementById('routeChoice').classList.remove('hidden');
     title.textContent = selectedRoute ? selectedRoute + ' — Ready at Tinkune' : 'Choose Route at Tinkune';
     text.textContent = selectedRoute ? 'Tap Check In to start Round 1.' : 'Your first action starts Round 1 at Tinkune.';
-    btn.textContent = 'CHECK IN AT TINKUNE';
-    btn.disabled = !selectedRoute;
+    checkInBtn.textContent = 'CHECK IN AT TINKUNE';
+    checkInBtn.disabled = !selectedRoute;
+    checkOutBtn.textContent = 'CHECK OUT — CHECK IN FIRST';
+    checkOutBtn.disabled = true;
     timer.style.display = 'none';
     box.className = 'route-state';
   } else {
@@ -555,10 +629,13 @@ function renderRouteState() {
       ? 'Round ' + s.round + ' · Check in when you arrive'
       : s.status === 'OFF_DUTY' ? 'Van is off duty for today.' : 'Round ' + s.round + ' · Check out when leaving';
     const travelReady = (Number(s.elapsedSeconds) || 0) >= MIN_TRAVEL_SECONDS;
-    btn.textContent = s.status === 'MOVING'
+    checkInBtn.textContent = s.status === 'MOVING'
       ? travelReady ? 'CHECK IN AT ' + s.nextStation : 'CHECK IN OPENS IN ' + fmtSeconds(MIN_TRAVEL_SECONDS - (Number(s.elapsedSeconds) || 0))
-      : s.status === 'AT_STATION' ? 'CHECK OUT FROM ' + s.station : 'ROUTE COMPLETE';
-    btn.disabled = s.status === 'OFF_DUTY' || (s.status === 'MOVING' && !travelReady);
+      : s.status === 'AT_STATION' ? 'CHECK IN COMPLETE' : 'ROUTE COMPLETE';
+    checkInBtn.disabled = s.status !== 'MOVING' || !travelReady;
+    checkOutBtn.textContent = s.status === 'AT_STATION'
+      ? 'CHECK OUT FROM ' + s.station : 'CHECK OUT — CHECK IN FIRST';
+    checkOutBtn.disabled = s.status !== 'AT_STATION';
     timer.style.display = s.status === 'OFF_DUTY' ? 'none' : 'block';
     timer.textContent = fmtSeconds(s.elapsedSeconds);
     timer.className = 'route-state big-time ' +
@@ -1223,4 +1300,4 @@ setInterval(updateLiveClock, 1000);
 init();
 </script>
 </body>
-</html>
+</html> 
