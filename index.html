@@ -256,7 +256,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 </div>
 
 <script>
-const APP_VERSION = "v14-route-timing";
+const APP_VERSION = "v15-checkout-enabled";
 const MIN_TRAVEL_SECONDS = 120;
 let SCRIPT_URL = localStorage.getItem('ncm_url') || "";
 let currentBranch = "";
@@ -534,7 +534,7 @@ async function loadRouteState() {
   if (currentRole !== 'driver' || !currentVanNo) return;
   try {
     const res = await apiGet({ action: 'getRouteState', vanNo: currentVanNo });
-    if (res.success) {
+    if (res && res.success && res.state) {
       routeState = res.state;
       if (routeState.route) selectedRoute = routeState.route;
       renderRouteState();
@@ -548,7 +548,7 @@ async function routeCheckIn() {
     if (!selectedRoute) return toast('Choose a route first', 'bad');
     return sendRouteEvent('routeCheckIn', 'TINKUNE', selectedRoute);
   }
-  if (routeState.status === 'MOVING') {
+  if (normalizedRouteStatus(routeState) === 'MOVING') {
     if ((Number(routeState.elapsedSeconds) || 0) < MIN_TRAVEL_SECONDS) {
       return toast('Check-in opens after 2 minutes of travel', 'warn');
     }
@@ -559,15 +559,23 @@ async function routeCheckIn() {
 
 async function routeCheckOut() {
   if (currentRole !== 'driver' || !currentVanNo) return toast('Driver session is missing', 'bad');
-  if (!routeState || routeState.status !== 'AT_STATION') {
+  if (!isAtStation(routeState)) {
     return toast('Check in at the station before checking out', 'warn');
   }
   return sendRouteEvent('routeCheckOut', routeState.station, routeState.route);
 }
 
+function normalizedRouteStatus(state) {
+  return String(state && state.status || '').toUpperCase().replace(/[\s-]+/g, '_');
+}
+
+function isAtStation(state) {
+  return !!(state && state.started && normalizedRouteStatus(state) === 'AT_STATION');
+}
+
 // Backward-compatible handler for any cached page still calling the old button.
 async function routeAction() {
-  if (routeState && routeState.status === 'AT_STATION') return routeCheckOut();
+  if (isAtStation(routeState)) return routeCheckOut();
   return routeCheckIn();
 }
 
@@ -585,7 +593,8 @@ async function sendRouteEvent(action, station, route) {
     }
     if (!res.success) return toast(res.error || 'Could not update route', 'bad');
     toast(res.message, 'ok');
-    routeState = res.state;
+    if (res.state) routeState = res.state;
+    else await loadRouteState();
     renderRouteState();
     loadRouteDashboard();
     setTimeout(loadAllVans, 800);
@@ -634,30 +643,31 @@ function renderRouteState() {
     box.className = 'route-state';
   } else {
     const s = routeState;
+    const status = normalizedRouteStatus(s);
     document.getElementById('routeChoice').classList.add('hidden');
-    title.textContent = s.status === 'MOVING'
+    title.textContent = status === 'MOVING'
       ? 'Heading to ' + s.nextStation
-      : s.status === 'OFF_DUTY' ? '3 rounds complete' : 'At ' + s.station;
-    text.textContent = s.status === 'MOVING'
+      : status === 'OFF_DUTY' ? '3 rounds complete' : 'At ' + s.station;
+    text.textContent = status === 'MOVING'
       ? 'Round ' + s.round + ' · Check in when you arrive'
-      : s.status === 'OFF_DUTY' ? 'Van is off duty for today.' : 'Round ' + s.round + ' · Check out when leaving';
+      : status === 'OFF_DUTY' ? 'Van is off duty for today.' : 'Round ' + s.round + ' · Check out when leaving';
     const travelReady = (Number(s.elapsedSeconds) || 0) >= MIN_TRAVEL_SECONDS;
-    checkInBtn.textContent = s.status === 'MOVING'
+    checkInBtn.textContent = status === 'MOVING'
       ? travelReady ? 'CHECK IN AT ' + s.nextStation : 'CHECK IN OPENS IN ' + fmtSeconds(MIN_TRAVEL_SECONDS - (Number(s.elapsedSeconds) || 0))
-      : s.status === 'AT_STATION' ? 'CHECK IN COMPLETE' : 'ROUTE COMPLETE';
-    checkInBtn.disabled = s.status !== 'MOVING' || !travelReady;
-    checkOutBtn.textContent = s.status === 'AT_STATION'
+      : status === 'AT_STATION' ? 'CHECK IN COMPLETE' : 'ROUTE COMPLETE';
+    checkInBtn.disabled = status !== 'MOVING' || !travelReady;
+    checkOutBtn.textContent = status === 'AT_STATION'
       ? 'CHECK OUT FROM ' + s.station : 'CHECK OUT — CHECK IN FIRST';
-    checkOutBtn.disabled = s.status !== 'AT_STATION';
-    timerLabel.textContent = s.status === 'MOVING'
+    checkOutBtn.disabled = status !== 'AT_STATION';
+    timerLabel.textContent = status === 'MOVING'
       ? 'TRAVEL TIME TO ' + s.nextStation
       : 'HOLD TIME AT ' + s.station;
     timerLabel.style.display = 'block';
-    timer.style.display = s.status === 'OFF_DUTY' ? 'none' : 'block';
+    timer.style.display = status === 'OFF_DUTY' ? 'none' : 'block';
     timer.textContent = fmtSeconds(s.elapsedSeconds);
     timer.className = 'route-state big-time ' +
       ((Number(s.elapsedSeconds) || 0) >= 600 ? 'late' : 'on-time');
-    box.className = 'route-state ' + (s.status === 'MOVING' ? 'moving' : s.status === 'OFF_DUTY' ? 'done' : '');
+    box.className = 'route-state ' + (status === 'MOVING' ? 'moving' : status === 'OFF_DUTY' ? 'done' : '');
   }
   stops.innerHTML = route.map((stop, i) => {
     const isCurrent = routeState && routeState.started &&
