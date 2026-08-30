@@ -115,6 +115,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .route-state.done{background:#fef3c7;border-color:#fcd34d}
 .route-state h3{font-size:18px;color:#1e293b;margin-bottom:5px}
 .route-state p{font-size:12px;color:#475569;margin-top:4px}
+.timer-label{font-size:11px;font-weight:800;letter-spacing:.08em;color:#64748b;margin-top:12px}
 .route-state .big-time{font:800 28px monospace;color:#2563eb;margin:10px 0}
 .big-time.on-time{color:#16a34a}.big-time.late{color:#dc2626}
 .route-stops{display:flex;gap:4px;overflow-x:auto;padding:5px 0 2px;margin-top:10px}
@@ -187,6 +188,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
           <h3 id="routeStateTitle">Choose Route at Tinkune</h3>
           <p id="routeStateText">Your first action starts Round 1 at Tinkune.</p>
           <div class="route-stops" id="routeStops"></div>
+          <div class="timer-label" id="routeTimerLabel" style="display:none">HOLD TIME AT STATION</div>
           <div class="route-state big-time" id="routeTimer" style="display:none">00:00</div>
           <div class="route-actions">
             <button class="btn btn-green" id="routeCheckInBtn" onclick="routeCheckIn()">CHECK IN AT TINKUNE</button>
@@ -254,7 +256,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 </div>
 
 <script>
-const APP_VERSION = "v13-route-monitor";
+const APP_VERSION = "v14-route-timing";
 const MIN_TRAVEL_SECONDS = 120;
 let SCRIPT_URL = localStorage.getItem('ncm_url') || "";
 let currentBranch = "";
@@ -418,6 +420,7 @@ function showApp() {
     document.getElementById('driverRouteCard').classList.remove('hidden');
     document.getElementById('branchMonitorCard').classList.add('hidden');
     document.getElementById('routeNavTab').textContent = 'Monitor';
+    renderRouteOptions();
   } else {
     document.getElementById('adminNavTab').classList.add('hidden');
     document.getElementById('driverRouteCard').classList.add('hidden');
@@ -482,7 +485,10 @@ function chooseRoute(route) {
 async function loadRoutes() {
   try {
     const res = await apiGet({ action:'getRoutes' });
-    if (!res.success || !res.routes) return;
+    if (!res.success || !res.routes) {
+      if (currentRole === 'driver') renderRouteOptions();
+      return;
+    }
     availableRoutes = res.routes;
     if (currentRole === 'driver') {
       if (routeState && routeState.route) selectedRoute = routeState.route;
@@ -490,7 +496,9 @@ async function loadRoutes() {
       renderRouteOptions();
       renderRouteState();
     }
-  } catch(e) {}
+  } catch(e) {
+    if (currentRole === 'driver') renderRouteOptions();
+  }
 }
 
 function renderRouteOptions() {
@@ -572,6 +580,9 @@ async function sendRouteEvent(action, station, route) {
   try {
     const body = { action: action, vanNo: currentVanNo, station: station, route: route };
     const res = await apiPost(body);
+    if (!res || typeof res !== 'object') {
+      return toast('The server returned an invalid response. Check the Apps Script deployment.', 'bad');
+    }
     if (!res.success) return toast(res.error || 'Could not update route', 'bad');
     toast(res.message, 'ok');
     routeState = res.state;
@@ -606,6 +617,7 @@ function renderRouteState() {
   const checkInBtn = document.getElementById('routeCheckInBtn');
   const checkOutBtn = document.getElementById('routeCheckOutBtn');
   const timer = document.getElementById('routeTimer');
+  const timerLabel = document.getElementById('routeTimerLabel');
   const stops = document.getElementById('routeStops');
   const route = availableRoutes[selectedRoute] || availableRoutes['ROUTE 1'] || [];
 
@@ -617,6 +629,7 @@ function renderRouteState() {
     checkInBtn.disabled = !selectedRoute;
     checkOutBtn.textContent = 'CHECK OUT — CHECK IN FIRST';
     checkOutBtn.disabled = true;
+    timerLabel.style.display = 'none';
     timer.style.display = 'none';
     box.className = 'route-state';
   } else {
@@ -636,6 +649,10 @@ function renderRouteState() {
     checkOutBtn.textContent = s.status === 'AT_STATION'
       ? 'CHECK OUT FROM ' + s.station : 'CHECK OUT — CHECK IN FIRST';
     checkOutBtn.disabled = s.status !== 'AT_STATION';
+    timerLabel.textContent = s.status === 'MOVING'
+      ? 'TRAVEL TIME TO ' + s.nextStation
+      : 'HOLD TIME AT ' + s.station;
+    timerLabel.style.display = 'block';
     timer.style.display = s.status === 'OFF_DUTY' ? 'none' : 'block';
     timer.textContent = fmtSeconds(s.elapsedSeconds);
     timer.className = 'route-state big-time ' +
@@ -1300,4 +1317,4 @@ setInterval(updateLiveClock, 1000);
 init();
 </script>
 </body>
-</html> 
+</html>
