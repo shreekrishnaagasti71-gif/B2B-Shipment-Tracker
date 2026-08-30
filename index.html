@@ -7,9 +7,11 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Segoe UI,Arial,sans-serif;background:#f8fafc;color:#1e293b;min-height:100vh;padding-bottom:80px}
-.header{background:#fff;padding:16px 20px;text-align:center;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+.header{background:#fff;padding:13px 20px;text-align:center;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.05);position:relative}
 .header h1{font-size:20px;color:#dc2626;font-weight:800;letter-spacing:0.5px}
 .header p{font-size:11px;color:#64748b;margin-top:2px}
+.live-clock{position:absolute;right:14px;top:12px;text-align:right;color:#2563eb;font-weight:800;font-size:12px;line-height:1.35}
+.live-clock small{display:block;color:#64748b;font-size:10px;font-weight:600}
 .container{padding:15px;max-width:520px;margin:0 auto}
 .login-box{background:#fff;border-radius:14px;padding:28px 20px;margin-top:20px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .login-box h2{text-align:center;color:#1e293b;margin-bottom:20px;font-size:18px;font-weight:700}
@@ -102,6 +104,31 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .reset-btn{position:fixed;top:10px;right:10px;z-index:500;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer}
 .hidden{display:none!important}
 .mt-10{margin-top:10px}.mt-15{margin-top:15px}.flex{display:flex;gap:8px}.flex-1{flex:1}
+.route-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.route-option{border:2px solid #e2e8f0;border-radius:10px;padding:12px;cursor:pointer;text-align:left;background:#fff}
+.route-option.selected{border-color:#2563eb;background:#eff6ff}
+.route-option strong{display:block;color:#2563eb;font-size:14px;margin-bottom:4px}
+.route-option span{display:block;color:#64748b;font-size:11px;line-height:1.4}
+.route-state{border-radius:12px;padding:16px;background:#eff6ff;border:1.5px solid #93c5fd;margin-top:12px}
+.route-state.moving{background:#f0fdf4;border-color:#86efac}
+.route-state.done{background:#fef3c7;border-color:#fcd34d}
+.route-state h3{font-size:18px;color:#1e293b;margin-bottom:5px}
+.route-state p{font-size:12px;color:#475569;margin-top:4px}
+.route-state .big-time{font:800 28px monospace;color:#2563eb;margin:10px 0}
+.route-stops{display:flex;gap:4px;overflow-x:auto;padding:5px 0 2px;margin-top:10px}
+.route-stop{font-size:10px;font-weight:700;color:#64748b;white-space:nowrap;background:#fff;border:1px solid #cbd5e1;padding:5px 7px;border-radius:6px}
+.route-stop.current{color:#fff;background:#2563eb;border-color:#2563eb}
+.route-stop.passed{color:#15803d;background:#dcfce7;border-color:#86efac}
+.monitor-card{border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;margin:8px 0;background:#fff}
+.monitor-card.moving{border-color:#86efac;background:#f0fdf4}
+.monitor-card.incoming{border-color:#93c5fd;background:#eff6ff}
+.monitor-head{display:flex;justify-content:space-between;align-items:center;font-weight:800}
+.monitor-sub{font-size:12px;color:#64748b;margin-top:5px}
+.issue-box textarea{width:100%;min-height:75px;resize:vertical;padding:11px;font:15px inherit;border:1.5px solid #e2e8f0;border-radius:8px}
+.issue-row{border-bottom:1px solid #f1f5f9;padding:10px 0;font-size:12px}
+.issue-row:last-child{border-bottom:none}
+.issue-text{color:#1e293b;font-weight:600;margin:3px 0}
+.admin-action{padding:5px 8px;font-size:11px}
 </style>
 </head>
 <body>
@@ -110,7 +137,8 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 
 <div class="header">
   <h1>NCM B2B TRACKER</h1>
-  <p>Scan · Send · Receive · Live</p>
+  <p>Route movement · Check in/out · Live</p>
+  <div class="live-clock" id="liveClock">--:--:--<small>--/--/----</small></div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -128,16 +156,62 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
       <h2>Branch Login</h2>
       <input type="password" id="passcodeInput" placeholder="0000" maxlength="10" onkeydown="if(event.key==='Enter')login()">
       <button class="btn btn-red mt-10" onclick="login()">Login</button>
-      <p style="text-align:center;margin-top:10px;font-size:12px;color:#64748b">Driver passcode: <b>7777</b></p>
+      <p style="text-align:center;margin-top:10px;font-size:12px;color:#64748b">Driver uses van passcode · Admin: <b>9999</b></p>
     </div>
   </div>
 
   <div id="mainApp" class="hidden">
 
     <div class="nav-tabs">
-      <button class="nav-tab active" onclick="showTab('send',this)">Send</button>
+      <button class="nav-tab active" id="routeNavTab" onclick="showTab('route',this)">Route</button>
+      <button class="nav-tab" id="sendNavTab" onclick="showTab('send',this)">Send</button>
       <button class="nav-tab" onclick="showTab('receive',this)">Receive</button>
       <button class="nav-tab" onclick="showTab('vans',this)">All Vans</button>
+      <button class="nav-tab hidden" id="adminNavTab" onclick="showTab('admin',this)">Admin</button>
+    </div>
+
+    <!-- ROUTE-FIRST DRIVER VIEW -->
+    <div id="routeTab">
+      <div class="card" id="driverRouteCard">
+        <h4>🚐 Driver Route Movement</h4>
+        <p style="font-size:12px;color:#64748b;margin-bottom:10px">
+          Select your route once. At every station tap Check In when you arrive,
+          then Check Out when you leave. No shipment scan is required.
+        </p>
+        <div class="route-choice" id="routeChoice">
+          <button class="route-option" data-route="ROUTE 1" onclick="chooseRoute('ROUTE 1')">
+            <strong>Route 1</strong><span>Tinkune → Chabahil → Basundhara → Naya Buspark → Swoyambhu → Kalanki → Satdobato → Tinkune</span>
+          </button>
+          <button class="route-option" data-route="ROUTE 2" onclick="chooseRoute('ROUTE 2')">
+            <strong>Route 2</strong><span>Tinkune → Satdobato → Kalanki → Swoyambhu → Naya Buspark → Basundhara → Chabahil → Tinkune</span>
+          </button>
+        </div>
+        <div id="routeStateBox" class="route-state">
+          <h3 id="routeStateTitle">Choose Route at Tinkune</h3>
+          <p id="routeStateText">Your first action starts Round 1 at Tinkune.</p>
+          <div class="route-stops" id="routeStops"></div>
+          <div class="route-state big-time" id="routeTimer" style="display:none">00:00</div>
+          <button class="btn btn-green mt-10" id="routeActionBtn" onclick="routeAction()">CHECK IN AT TINKUNE</button>
+        </div>
+      </div>
+
+      <div class="card" id="branchMonitorCard">
+        <h4 id="monitorHeading">📍 Live Branch Monitor</h4>
+        <div id="routeMonitorList"><div style="font-size:13px;color:#94a3b8;text-align:center;padding:8px">Loading live van status…</div></div>
+      </div>
+    </div>
+
+    <!-- ADMIN CONTROL VIEW -->
+    <div id="adminTab" class="hidden">
+      <div class="card">
+        <h4>🛠 Admin — All Van Control</h4>
+        <p style="font-size:12px;color:#64748b;margin-bottom:8px">Live route status for every van. Reset keeps the movement history and allows a corrected route start.</p>
+        <div id="adminVanList"></div>
+      </div>
+      <div class="card">
+        <div class="pending-header"><h4 style="margin:0">⚠ Open Issues</h4><button class="btn btn-grey btn-small" onclick="loadIssues()">↻ Refresh</button></div>
+        <div id="issueList"><div style="font-size:13px;color:#94a3b8">No open issues.</div></div>
+      </div>
     </div>
 
     <!-- MY BRANCH VAN MOVEMENTS STRIP (Send + Receive tabs) -->
@@ -146,7 +220,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
       <div id="allVansMoveList"></div>
     </div>
 
-    <div id="sendTab">
+    <div id="sendTab" class="hidden">
       <div class="card">
         <h4>Send Shipment</h4>
         <label>Origin Branch</label>
@@ -228,6 +302,12 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
       </div>
     </div>
 
+    <div class="card issue-box">
+      <h4>📝 Report an Issue</h4>
+      <textarea id="issueInput" placeholder="Example: Van delayed, route blocked, or station issue…"></textarea>
+      <button class="btn btn-grey mt-10" onclick="submitIssue()">Send Issue to Admin</button>
+    </div>
+
   </div>
 </div>
 
@@ -245,12 +325,17 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 </div>
 
 <script>
-const APP_VERSION = "v11-branch-filter";
+const APP_VERSION = "v12-route-movement";
 let SCRIPT_URL = localStorage.getItem('ncm_url') || "";
 let currentBranch = "";
 let currentRole = "";
+let currentVanNo = "";
 let currentDestinations = [];
 let driverBranches = [];
+let selectedRoute = localStorage.getItem('ncm_route') || "";
+let routeState = null;
+let routePollInterval = null;
+let routeTickInterval = null;
 let scanMode = "";
 let sendQueue = [];
 let recvQueue = [];
@@ -288,6 +373,7 @@ function init() {
       const s = JSON.parse(sess);
       currentBranch      = s.branch       || "";
       currentRole        = s.role         || "branch";
+      currentVanNo       = s.vanNo        || "";
       currentDestinations= s.destinations || [];
       driverBranches     = s.branches     || [];
       showApp();
@@ -351,11 +437,15 @@ async function login() {
         currentDestinations = res.destinations || [];
       } else if (res.role === 'driver') {
         currentBranch  = "";
+        currentVanNo   = res.vanNo || "";
         driverBranches = res.branches || [];
+      } else if (res.role === 'admin') {
+        currentBranch = "";
+        currentVanNo = "";
       }
       localStorage.setItem('ncm_session', JSON.stringify({
         branch: currentBranch, role: currentRole,
-        destinations: currentDestinations, branches: driverBranches
+        vanNo: currentVanNo, destinations: currentDestinations, branches: driverBranches
       }));
       showApp();
       toast('Welcome ' + (currentBranch || 'Driver'), 'ok');
@@ -369,11 +459,39 @@ function showApp() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('mainApp').classList.remove('hidden');
   document.getElementById('statusBar').classList.remove('hidden');
-  document.getElementById('userBranch').textContent = currentBranch || 'DRIVER';
+  document.getElementById('userBranch').textContent =
+    currentRole === 'admin' ? 'ADMIN' : currentBranch || ('VAN ' + currentVanNo);
 
   const badge    = document.getElementById('roleBadge');
   const driverBox= document.getElementById('driverBranchBox');
   const staffBox = document.getElementById('staffBranchBox');
+
+  if (currentRole === 'admin') {
+    badge.className = 'driver-badge';
+    badge.textContent = 'ADMIN';
+    document.getElementById('adminNavTab').classList.remove('hidden');
+    document.getElementById('driverRouteCard').classList.add('hidden');
+    document.getElementById('branchMonitorCard').classList.remove('hidden');
+    document.getElementById('routeNavTab').textContent = 'Monitor';
+    document.getElementById('sendNavTab').classList.add('hidden');
+    document.querySelector('.nav-tab[onclick*="receive"]').classList.add('hidden');
+  } else if (currentRole === 'driver') {
+    document.getElementById('adminNavTab').classList.add('hidden');
+    document.getElementById('driverRouteCard').classList.remove('hidden');
+    document.getElementById('branchMonitorCard').classList.add('hidden');
+    document.getElementById('routeNavTab').textContent = 'My Route';
+    document.getElementById('sendNavTab').classList.add('hidden');
+    document.querySelector('.nav-tab[onclick*="receive"]').classList.add('hidden');
+    document.querySelector('.nav-tab[onclick*="vans"]').classList.add('hidden');
+  } else {
+    document.getElementById('adminNavTab').classList.add('hidden');
+    document.getElementById('driverRouteCard').classList.add('hidden');
+    document.getElementById('branchMonitorCard').classList.remove('hidden');
+    document.getElementById('routeNavTab').textContent = 'Monitor';
+    document.getElementById('sendNavTab').classList.remove('hidden');
+    document.querySelector('.nav-tab[onclick*="receive"]').classList.remove('hidden');
+    document.querySelector('.nav-tab[onclick*="vans"]').classList.remove('hidden');
+  }
 
   if (currentRole === 'driver') {
     badge.className = 'driver-badge';
@@ -395,7 +513,7 @@ function showApp() {
       grid.appendChild(div);
     });
     if (driverBranches.length) currentBranch = driverBranches[0];
-  } else {
+  } else if (currentRole === 'branch') {
     badge.className = '';
     badge.textContent = '';
     driverBox.classList.add('hidden');
@@ -416,6 +534,12 @@ function showApp() {
   document.getElementById('stripHeading').textContent =
     '🚐 Van Movements — ' + (currentBranch || 'All');
 
+  if (currentRole === 'driver') {
+    startRoutePolling();
+  } else {
+    startRoutePolling();
+  }
+  if (currentRole === 'admin') loadIssues();
   startAllVansPolling();
 }
 
@@ -425,6 +549,8 @@ function showTab(tab, el) {
   document.getElementById('sendTab').classList.toggle('hidden',    tab !== 'send');
   document.getElementById('receiveTab').classList.toggle('hidden', tab !== 'receive');
   document.getElementById('vansTab').classList.toggle('hidden',    tab !== 'vans');
+  document.getElementById('routeTab').classList.toggle('hidden',   tab !== 'route');
+  document.getElementById('adminTab').classList.toggle('hidden',   tab !== 'admin');
 
   stopVanPolling();
 
@@ -449,6 +575,256 @@ function getActiveBranch() {
     return selected ? selected.textContent.replace('🏢','').trim() : currentBranch;
   }
   return currentBranch;
+}
+
+/* ===================== ROUTE MOVEMENT ===================== */
+
+function startRoutePolling() {
+  loadRouteState();
+  loadRouteDashboard();
+  if (routePollInterval) clearInterval(routePollInterval);
+  routePollInterval = setInterval(() => {
+    loadRouteState();
+    loadRouteDashboard();
+    if (currentRole === 'admin') loadIssues();
+  }, 10000);
+  if (routeTickInterval) clearInterval(routeTickInterval);
+  routeTickInterval = setInterval(tickRouteClock, 1000);
+}
+
+function chooseRoute(route) {
+  if (currentRole !== 'driver') return;
+  selectedRoute = route;
+  localStorage.setItem('ncm_route', route);
+  document.querySelectorAll('.route-option').forEach(el =>
+    el.classList.toggle('selected', el.dataset.route === route)
+  );
+  renderRouteState();
+}
+
+async function loadRouteState() {
+  if (currentRole !== 'driver' || !currentVanNo) return;
+  try {
+    const res = await apiGet({ action: 'getRouteState', vanNo: currentVanNo });
+    if (res.success) {
+      routeState = res.state;
+      if (routeState.route) selectedRoute = routeState.route;
+      renderRouteState();
+    }
+  } catch(e) {}
+}
+
+async function routeAction() {
+  if (currentRole !== 'driver' || !currentVanNo) return toast('Driver session is missing', 'bad');
+  if (!routeState || !routeState.started) {
+    if (!selectedRoute) return toast('Choose Route 1 or Route 2', 'bad');
+    return sendRouteEvent('routeCheckIn', 'TINKUNE', selectedRoute);
+  }
+  if (routeState.status === 'MOVING') {
+    return sendRouteEvent('routeCheckIn', routeState.nextStation, routeState.route);
+  }
+  if (routeState.status === 'AT_STATION') {
+    return sendRouteEvent('routeCheckOut', routeState.station, routeState.route);
+  }
+  toast('This van has completed today’s route', 'warn');
+}
+
+async function sendRouteEvent(action, station, route) {
+  const button = document.getElementById('routeActionBtn');
+  button.disabled = true;
+  try {
+    const body = { action: action, vanNo: currentVanNo, station: station, route: route };
+    const res = await apiPost(body);
+    if (!res.success) return toast(res.error || 'Could not update route', 'bad');
+    toast(res.message, 'ok');
+    routeState = res.state;
+    renderRouteState();
+    loadRouteDashboard();
+    setTimeout(loadAllVans, 800);
+  } catch(e) {
+    toast('Network error — try again', 'bad');
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function fmtSeconds(total) {
+  total = Math.max(0, Math.floor(Number(total) || 0));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return (h ? String(h).padStart(2,'0') + ':' : '') +
+    String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function renderRouteState() {
+  if (currentRole !== 'driver') return;
+  document.querySelectorAll('.route-option').forEach(el =>
+    el.classList.toggle('selected', el.dataset.route === selectedRoute)
+  );
+  const box = document.getElementById('routeStateBox');
+  const title = document.getElementById('routeStateTitle');
+  const text = document.getElementById('routeStateText');
+  const btn = document.getElementById('routeActionBtn');
+  const timer = document.getElementById('routeTimer');
+  const stops = document.getElementById('routeStops');
+  const route = selectedRoute === 'ROUTE 2'
+    ? ['TINKUNE','SATDOBATO','KALANKI','SWOYAMBHU','NAYA BUSPARK','BASUNDHARA','CHABAHIL','TINKUNE']
+    : ['TINKUNE','CHABAHIL','BASUNDHARA','NAYA BUSPARK','SWOYAMBHU','KALANKI','SATDOBATO','TINKUNE'];
+
+  if (!routeState || !routeState.started) {
+    title.textContent = selectedRoute ? selectedRoute + ' — Ready at Tinkune' : 'Choose Route at Tinkune';
+    text.textContent = selectedRoute ? 'Tap Check In to start Round 1.' : 'Your first action starts Round 1 at Tinkune.';
+    btn.textContent = 'CHECK IN AT TINKUNE';
+    btn.disabled = !selectedRoute;
+    timer.style.display = 'none';
+    box.className = 'route-state';
+  } else {
+    const s = routeState;
+    title.textContent = s.status === 'MOVING'
+      ? 'Heading to ' + s.nextStation
+      : s.status === 'OFF_DUTY' ? '3 rounds complete' : 'At ' + s.station;
+    text.textContent = s.status === 'MOVING'
+      ? 'Round ' + s.round + ' · Check in when you arrive'
+      : s.status === 'OFF_DUTY' ? 'Van is off duty for today.' : 'Round ' + s.round + ' · Check out when leaving';
+    btn.textContent = s.status === 'MOVING'
+      ? 'CHECK IN AT ' + s.nextStation
+      : s.status === 'AT_STATION' ? 'CHECK OUT FROM ' + s.station : 'ROUTE COMPLETE';
+    btn.disabled = s.status === 'OFF_DUTY';
+    timer.style.display = s.status === 'OFF_DUTY' ? 'none' : 'block';
+    timer.textContent = fmtSeconds(s.elapsedSeconds);
+    box.className = 'route-state ' + (s.status === 'MOVING' ? 'moving' : s.status === 'OFF_DUTY' ? 'done' : '');
+  }
+  stops.innerHTML = route.map((stop, i) => {
+    const isCurrent = routeState && routeState.started &&
+      ((routeState.status === 'MOVING' && i === routeState.stopIndex + 1) ||
+       (routeState.status !== 'MOVING' && i === routeState.stopIndex));
+    const passed = routeState && routeState.started && i < routeState.stopIndex;
+    return '<span class="route-stop ' + (isCurrent ? 'current' : passed ? 'passed' : '') + '">' +
+      (i + 1) + '. ' + stop + '</span>';
+  }).join('');
+}
+
+function tickRouteClock() {
+  if (routeState && routeState.started && routeState.status !== 'OFF_DUTY') {
+    routeState.elapsedSeconds = (Number(routeState.elapsedSeconds) || 0) + 1;
+    const timer = document.getElementById('routeTimer');
+    if (timer && timer.style.display !== 'none') timer.textContent = fmtSeconds(routeState.elapsedSeconds);
+  }
+  updateLiveClock();
+}
+
+async function loadRouteDashboard() {
+  try {
+    const res = await apiGet({ action: 'getRouteDashboard' });
+    if (!res.success) return;
+    const vans = res.data || [];
+    renderRouteMonitor(vans);
+    if (currentRole === 'admin') renderAdminVans(vans);
+  } catch(e) {}
+}
+
+function renderRouteMonitor(vans) {
+  const list = document.getElementById('routeMonitorList');
+  if (!list) return;
+  const branch = currentRole === 'branch' ? currentBranch : '';
+  const shown = branch ? vans.filter(v =>
+    v.toBranch === branch || v.fromBranch === branch ||
+    (v.status === 'idle' && v.lastLocation === branch)
+  ) : vans;
+  if (!shown.length) {
+    list.innerHTML = '<div style="font-size:13px;color:#94a3b8;text-align:center;padding:8px">' +
+      (branch ? 'No vans currently connected to ' + branch : 'No van activity yet.') + '</div>';
+    return;
+  }
+  list.innerHTML = shown.map(v => {
+    const moving = v.status === 'moving';
+    const incoming = moving && v.toBranch === branch;
+    const time = moving ? fmt(v.elapsedMinutes || 0, v.elapsedSeconds || 0) :
+      v.status === 'idle' && v.holdElapsedSeconds ? fmtSeconds(v.holdElapsedSeconds) : '';
+    return '<div class="monitor-card ' + (moving ? (incoming ? 'incoming' : 'moving') : '') + '">' +
+      '<div class="monitor-head"><span>Van ' + v.vanNo + '</span><span>' +
+      (moving ? (incoming ? '🟢 INCOMING' : '🔵 MOVING') : v.status === 'off_duty' ? '✓ OFF DUTY' : 'AT ' + (v.lastLocation || '—')) +
+      '</span></div>' +
+      '<div class="monitor-sub">' +
+      (moving ? v.fromBranch + ' → ' + v.toBranch + ' · ' + time :
+       (v.route ? v.route + ' · ' : '') + (v.roundLabel || 'Not started') + (time ? ' · Hold ' + time : '')) +
+      '</div></div>';
+  }).join('');
+}
+
+function renderAdminVans(vans) {
+  const list = document.getElementById('adminVanList');
+  if (!list) return;
+  list.innerHTML = vans.map(v =>
+    '<div class="monitor-card ' + (v.status === 'moving' ? 'moving' : '') + '">' +
+    '<div class="monitor-head"><span>Van ' + v.vanNo + '</span><button class="btn btn-grey admin-action" onclick="resetVan(\'' + v.vanNo + '\')">Reset today</button></div>' +
+    '<div class="monitor-sub">' + (v.status === 'moving'
+      ? v.fromBranch + ' → ' + v.toBranch + ' · ' + (v.roundLabel || '')
+      : (v.status === 'off_duty' ? 'Off duty at ' + v.lastLocation : 'At ' + (v.lastLocation || 'Not started'))) + '</div></div>'
+  ).join('') || '<div style="font-size:13px;color:#94a3b8">No vans registered.</div>';
+}
+
+async function resetVan(vanNo) {
+  if (!confirm('Reset Van ' + vanNo + ' for today? History will stay in the sheet.')) return;
+  try {
+    const res = await apiPost({ action:'adminResetVan', vanNo:vanNo });
+    toast(res.message || res.error, res.success ? 'ok' : 'bad');
+    if (res.success) loadRouteDashboard();
+  } catch(e) { toast('Network error', 'bad'); }
+}
+
+async function submitIssue() {
+  const input = document.getElementById('issueInput');
+  const issue = input.value.trim();
+  if (!issue) return toast('Write the issue first', 'bad');
+  try {
+    const res = await apiPost({
+      action:'submitIssue', issue:issue, role:currentRole,
+      branch:currentBranch, vanNo:currentVanNo,
+      reportedBy:currentRole === 'driver' ? 'Van ' + currentVanNo : currentBranch || 'Admin'
+    });
+    toast(res.message || res.error, res.success ? 'ok' : 'bad');
+    if (res.success) input.value = '';
+  } catch(e) { toast('Network error', 'bad'); }
+}
+
+async function loadIssues() {
+  if (currentRole !== 'admin') return;
+  try {
+    const res = await apiGet({ action:'getIssues' });
+    const list = document.getElementById('issueList');
+    if (!list) return;
+    const issues = res.data || [];
+    list.innerHTML = issues.length ? issues.map(i =>
+      '<div class="issue-row"><b>' + i.date + ' ' + i.time + '</b> · ' +
+      (i.reportedBy || i.role) + (i.vanNo ? ' · Van ' + i.vanNo : '') +
+      '<div class="issue-text">' + escapeHtml(i.issue) + '</div>' +
+      '<button class="btn btn-grey admin-action" onclick="closeIssue(' + i.row + ')">Close issue</button></div>'
+    ).join('') : '<div style="font-size:13px;color:#94a3b8">No open issues.</div>';
+  } catch(e) {}
+}
+
+async function closeIssue(row) {
+  try {
+    const res = await apiPost({ action:'closeIssue', row:row });
+    toast(res.message || res.error, res.success ? 'ok' : 'bad');
+    if (res.success) loadIssues();
+  } catch(e) { toast('Network error', 'bad'); }
+}
+
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function updateLiveClock() {
+  const now = new Date();
+  const opts = { timeZone:'Asia/Kathmandu', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false };
+  const dateOpts = { timeZone:'Asia/Kathmandu', day:'2-digit', month:'2-digit', year:'numeric' };
+  const el = document.getElementById('liveClock');
+  if (el) el.innerHTML = now.toLocaleTimeString('en-GB', opts) +
+    '<small>' + now.toLocaleDateString('en-GB', dateOpts) + '</small>';
 }
 
 /* ===================== INCOMING VANS (Receive tab) ===================== */
@@ -961,6 +1337,8 @@ function toast(msg, type) {
   t._tm = setTimeout(() => t.style.display = 'none', 3000);
 }
 
+updateLiveClock();
+setInterval(updateLiveClock, 1000);
 init();
 </script>
 </body>
