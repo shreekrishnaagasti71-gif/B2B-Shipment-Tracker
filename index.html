@@ -636,6 +636,24 @@ async function routeAction() {
   return routeCheckIn();
 }
 
+// When the server says success:true for a check-in/check-out, that outcome is
+// final — the action DID happen. If the "state" details it sends back disagree
+// (wrong status, started:false, etc.), that's a bad/stale read on the server's
+// side, not a reason to show the driver the wrong screen. So we always trust
+// the action's own outcome for started/status, and only take extra detail
+// (station names, round, timers) from the server's state when present.
+function reconcileConfirmedState(action, station, route, serverState) {
+  const expectedStatus = action === 'routeCheckOut' ? 'MOVING' : 'AT_STATION';
+  const base = serverState && typeof serverState === 'object'
+    ? Object.assign({}, serverState)
+    : localRouteStateAfterEvent(action, station, route);
+  base.started = true;
+  if (normalizedRouteStatus(base) !== expectedStatus) base.status = expectedStatus;
+  if (!base.station) base.station = station;
+  if (!base.route) base.route = route;
+  routeState = base;
+}
+
 async function sendRouteEvent(action, station, route) {
   const clickedBtn = action === 'routeCheckOut'
     ? document.getElementById('routeCheckOutBtn')
@@ -664,7 +682,7 @@ async function sendRouteEvent(action, station, route) {
       return toast(res.error || 'Could not update route — reverted', 'bad');
     }
     toast(res.message, 'ok');
-    if (res.state) routeState = res.state; // adopt the server's authoritative numbers
+    reconcileConfirmedState(action, station, route, res.state);
     lastConfirmedAt = Date.now();
     setRouteServerStatus(
       action === 'routeCheckOut'
