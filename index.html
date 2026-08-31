@@ -137,6 +137,9 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .route-actions .btn{font-size:12px;padding:12px 6px}
 .btn-outline-red{background:#fff;color:#dc2626;border:2px solid #dc2626}.btn-outline-red:hover{background:#fee2e2}
 .route-actions .btn:disabled{opacity:.45;cursor:not-allowed}
+.route-server-status{font-size:11px;color:#64748b;margin-top:9px;min-height:15px;text-align:center}
+.route-server-status.bad{color:#dc2626;font-weight:700}
+.route-server-status.ok{color:#15803d}
 </style>
 </head>
 <body>
@@ -194,6 +197,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
             <button class="btn btn-green" id="routeCheckInBtn" onclick="routeCheckIn()">CHECK IN AT TINKUNE</button>
             <button class="btn btn-outline-red" id="routeCheckOutBtn" onclick="routeCheckOut()" disabled>CHECK OUT — CHECK IN FIRST</button>
           </div>
+          <div id="routeServerStatus" class="route-server-status" aria-live="polite"></div>
         </div>
       </div>
 
@@ -256,7 +260,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 </div>
 
 <script>
-const APP_VERSION = "v15-checkout-enabled";
+const APP_VERSION = "v16-checkout-diagnostics";
 const MIN_TRAVEL_SECONDS = 120;
 let SCRIPT_URL = localStorage.getItem('ncm_url') || "";
 let currentBranch = "";
@@ -531,15 +535,20 @@ async function createRoute() {
 }
 
 async function loadRouteState() {
-  if (currentRole !== 'driver' || !currentVanNo) return;
+  if (currentRole !== 'driver' || !currentVanNo) return false;
   try {
     const res = await apiGet({ action: 'getRouteState', vanNo: currentVanNo });
     if (res && res.success && res.state) {
       routeState = res.state;
       if (routeState.route) selectedRoute = routeState.route;
       renderRouteState();
+      return true;
     }
-  } catch(e) {}
+    if (res && !res.success) setRouteServerStatus('Apps Script: ' + (res.error || 'could not load route state'), 'bad');
+  } catch(e) {
+    setRouteServerStatus('Cannot read route state from Apps Script.', 'bad');
+  }
+  return false;
 }
 
 async function routeCheckIn() {
@@ -573,6 +582,32 @@ function isAtStation(state) {
   return !!(state && state.started && normalizedRouteStatus(state) === 'AT_STATION');
 }
 
+function setRouteServerStatus(message, kind) {
+  const el = document.getElementById('routeServerStatus');
+  if (!el) return;
+  el.textContent = message || '';
+  el.className = 'route-server-status' + (kind ? ' ' + kind : '');
+}
+
+function localRouteStateAfterEvent(action, station, routeName) {
+  const stops = availableRoutes[routeName] || [];
+  const index = Math.max(0, stops.indexOf(station));
+  const priorRound = Number(routeState && routeState.round) || 1;
+  let round = priorRound;
+  if (action === 'routeCheckIn' && routeState &&
+      normalizedRouteStatus(routeState) === 'MOVING' && index === 0) {
+    round = priorRound + 1;
+  }
+  const moving = action === 'routeCheckOut';
+  return {
+    vanNo: currentVanNo, started: true, route: routeName,
+    round: Math.min(round, 3), stopIndex: index, station: station,
+    nextStation: stops[index + 1] || stops[1] || station,
+    status: moving ? 'MOVING' : 'AT_STATION',
+    elapsedSeconds: 0, holdSeconds: 0, travelSeconds: 0
+  };
+}
+
 // Backward-compatible handler for any cached page still calling the old button.
 async function routeAction() {
   if (isAtStation(routeState)) return routeCheckOut();
@@ -585,20 +620,36 @@ async function sendRouteEvent(action, station, route) {
     document.getElementById('routeCheckOutBtn')
   ].filter(Boolean);
   buttons.forEach(button => button.disabled = true);
+  setRouteServerStatus('Saving ' + (action === 'routeCheckOut' ? 'check out' : 'check in') + ' to Google Sheets…');
   try {
     const body = { action: action, vanNo: currentVanNo, station: station, route: route };
     const res = await apiPost(body);
     if (!res || typeof res !== 'object') {
+      setRouteServerStatus('Invalid response from Apps Script. Deploy the updated backend.', 'bad');
       return toast('The server returned an invalid response. Check the Apps Script deployment.', 'bad');
     }
-    if (!res.success) return toast(res.error || 'Could not update route', 'bad');
+    if (!res.success) {
+      setRouteServerStatus('Apps Script: ' + (res.error || 'route update failed'), 'bad');
+      return toast(res.error || 'Could not update route', 'bad');
+    }
     toast(res.message, 'ok');
+    const fallbackState = localRouteStateAfterEvent(action, station, route);
     if (res.state) routeState = res.state;
-    else await loadRouteState();
+    else {
+      routeState = fallbackState;
+      const synced = await loadRouteState();
+      if (!synced) routeState = fallbackState;
+    }
+    setRouteServerStatus(
+      action === 'routeCheckOut'
+        ? 'Saved. Van is now incoming to ' + routeState.nextStation + '.'
+        : 'Saved. Hold timer is running at ' + routeState.station + '.', 'ok'
+    );
     renderRouteState();
     loadRouteDashboard();
     setTimeout(loadAllVans, 800);
   } catch(e) {
+    setRouteServerStatus('Cannot reach Apps Script. Check the deployed /exec URL.', 'bad');
     toast('Network error — try again', 'bad');
   } finally {
     buttons.forEach(button => button.disabled = false);
