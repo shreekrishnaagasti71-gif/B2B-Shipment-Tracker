@@ -12,6 +12,9 @@ body{font-family:Segoe UI,Arial,sans-serif;background:#f8fafc;color:#1e293b;min-
 .header p{font-size:11px;color:#64748b;margin-top:2px}
 .live-clock{position:absolute;right:14px;top:12px;text-align:right;color:#2563eb;font-weight:800;font-size:12px;line-height:1.35}
 .live-clock small{display:block;color:#64748b;font-size:10px;font-weight:600}
+.top-timer{position:absolute;right:14px;top:44px;background:#16a34a;color:#fff;border-radius:8px;padding:4px 10px;font-family:monospace;font-weight:800;font-size:14px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.15)}
+.top-timer.late{background:#dc2626}
+.top-timer small{display:block;font-size:8px;font-weight:800;letter-spacing:.06em;font-family:Segoe UI,Arial,sans-serif;opacity:0.85}
 .container{padding:15px;max-width:520px;margin:0 auto}
 .login-box{background:#fff;border-radius:14px;padding:28px 20px;margin-top:20px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .login-box h2{text-align:center;color:#1e293b;margin-bottom:20px;font-size:18px;font-weight:700}
@@ -151,6 +154,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
   <h1>NCM B2B TRACKER</h1>
   <p>Route movement · Check in/out · Live</p>
   <div class="live-clock" id="liveClock">--:--:--<small>--/--/----</small></div>
+  <div class="top-timer hidden" id="topTimerBadge"><small id="topTimerLabel">HOLD</small><span id="topTimerValue">00:00</span></div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -617,31 +621,34 @@ async function routeAction() {
 }
 
 async function sendRouteEvent(action, station, route) {
-  const buttons = [
-    document.getElementById('routeCheckInBtn'),
-    document.getElementById('routeCheckOutBtn')
-  ].filter(Boolean);
-  buttons.forEach(button => button.disabled = true);
+  const clickedBtn = action === 'routeCheckOut'
+    ? document.getElementById('routeCheckOutBtn')
+    : document.getElementById('routeCheckInBtn');
+
+  // Instant UI update — don't make the driver wait on Google Sheets to see
+  // Check Out unlock or the stopwatch start. We reconcile with the server
+  // as soon as it responds, and roll back only if the save actually failed.
+  const previousState = routeState;
+  routeState = localRouteStateAfterEvent(action, station, route);
+  if (clickedBtn) clickedBtn.disabled = true;
+  renderRouteState();
   setRouteServerStatus('Saving ' + (action === 'routeCheckOut' ? 'check out' : 'check in') + ' to Google Sheets…');
+
   try {
     const body = { action: action, vanNo: currentVanNo, station: station, route: route };
     const res = await apiPost(body);
     if (!res || typeof res !== 'object') {
-      setRouteServerStatus('Invalid response from Apps Script. Deploy the updated backend.', 'bad');
-      return toast('The server returned an invalid response. Check the Apps Script deployment.', 'bad');
+      setRouteServerStatus('Saved on screen, but the server response was invalid — will resync shortly.', 'warn');
+      return;
     }
     if (!res.success) {
-      setRouteServerStatus('Apps Script: ' + (res.error || 'route update failed'), 'bad');
-      return toast(res.error || 'Could not update route', 'bad');
+      routeState = previousState;
+      renderRouteState();
+      setRouteServerStatus('Apps Script: ' + (res.error || 'route update failed') + ' — reverted.', 'bad');
+      return toast(res.error || 'Could not update route — reverted', 'bad');
     }
     toast(res.message, 'ok');
-    const fallbackState = localRouteStateAfterEvent(action, station, route);
-    if (res.state) routeState = res.state;
-    else {
-      routeState = fallbackState;
-      const synced = await loadRouteState();
-      if (!synced) routeState = fallbackState;
-    }
+    if (res.state) routeState = res.state; // adopt the server's authoritative numbers
     setRouteServerStatus(
       action === 'routeCheckOut'
         ? 'Saved. Van is now incoming to ' + routeState.nextStation + '.'
@@ -651,10 +658,10 @@ async function sendRouteEvent(action, station, route) {
     loadRouteDashboard();
     setTimeout(loadAllVans, 800);
   } catch(e) {
-    setRouteServerStatus('Cannot reach Apps Script. Check the deployed /exec URL.', 'bad');
-    toast('Network error — try again', 'bad');
+    setRouteServerStatus('Cannot reach Apps Script — will keep retrying in the background.', 'bad');
+    toast('Network error — the app will resync automatically', 'warn');
   } finally {
-    buttons.forEach(button => button.disabled = false);
+    if (clickedBtn) clickedBtn.disabled = false;
     renderRouteState();
   }
 }
@@ -731,6 +738,7 @@ function renderRouteState() {
     return '<span class="route-stop ' + (isCurrent ? 'current' : passed ? 'passed' : '') + '">' +
       (i + 1) + '. ' + stop + '</span>';
   }).join('');
+  updateTopTimer();
 }
 
 function tickRouteClock() {
@@ -742,9 +750,28 @@ function tickRouteClock() {
       timer.classList.toggle('late', routeState.elapsedSeconds >= 600);
       timer.classList.toggle('on-time', routeState.elapsedSeconds < 600);
     }
+    updateTopTimer();
     renderRouteState();
+  } else {
+    const badge = document.getElementById('topTimerBadge');
+    if (badge) badge.classList.add('hidden');
   }
   updateLiveClock();
+}
+
+function updateTopTimer() {
+  const badge = document.getElementById('topTimerBadge');
+  const label = document.getElementById('topTimerLabel');
+  const value = document.getElementById('topTimerValue');
+  if (!badge || !routeState || !routeState.started || normalizedRouteStatus(routeState) === 'OFF_DUTY') {
+    if (badge) badge.classList.add('hidden');
+    return;
+  }
+  const moving = normalizedRouteStatus(routeState) === 'MOVING';
+  badge.classList.remove('hidden');
+  label.textContent = moving ? 'TRAVEL' : 'HOLD';
+  value.textContent = fmtSeconds(routeState.elapsedSeconds);
+  badge.classList.toggle('late', (Number(routeState.elapsedSeconds) || 0) >= 600);
 }
 
 async function loadRouteDashboard() {
