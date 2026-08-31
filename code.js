@@ -1,11 +1,15 @@
 // ═══════════════════════════════════════════════════════
-//  NCM B2B TRACKER — BACKEND v3
-//  Changes from v1:
-//   • Route-first van movement tracking — no shipment scan required
-//   • Two fixed routes, three rounds per day, with station check-in/out
-//   • Van-specific driver passcodes and an admin dashboard
-//   • Travel time, station hold time, issues, and live status in Sheets
-//   • Legacy shipment endpoints remain available for existing data
+//  NCM B2B TRACKER — BACKEND v3.1 (checkout bug fix)
+//  Fix in this version:
+//   • VAN MOVEMENTS "Date" column was getting silently auto-converted by
+//     Sheets from a "yyyy-MM-dd" string into a real Date object. Every
+//     lookup compared it as a string, so the row check-in had JUST written
+//     could no longer be found on the very next read — which is what made
+//     getRouteState() report "not started" right after a successful check
+//     in, and made Check Out fail with "Check in at TINKUNE first".
+//   • Added normalizeDateStr() and used it everywhere VAN MOVEMENTS rows
+//     are matched by date, and forced that column to plain text going
+//     forward so new rows don't get reconverted.
 //  Open from: Extensions → Apps Script inside your sheet
 //  After pasting: Deploy → Manage deployments → Edit → New version → Deploy
 // ═══════════════════════════════════════════════════════
@@ -98,6 +102,22 @@ function today() {
   return Utilities.formatDate(new Date(), CONFIG.TIMEZONE, "yyyy-MM-dd");
 }
 
+// FIX: Sheets silently converts a written value that looks like a date
+// (e.g. "2026-08-31") into a real Date object unless the column is forced
+// to plain text. Every date comparison in this file expects a
+// "yyyy-MM-dd" string, so this normalizes whichever type actually ended
+// up in the cell before comparing. Without this, a row written by
+// Check In could become unreadable as "today's row" on the very next
+// lookup — which is what made Check Out fail right after Check In.
+function normalizeDateStr(value) {
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, CONFIG.TIMEZONE, "yyyy-MM-dd");
+  }
+  var str = String(value || "").trim();
+  var match = str.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : str;
+}
+
 /* ─── ROUTE MOVEMENT TRACKING ──────────────────────────
    One row represents one station visit. Shipment scanning is optional; the
    route board is driven only by driver check-in/check-out events.
@@ -127,6 +147,10 @@ function getMovementSheet() {
     // Keep existing movement sheets compatible while adding a readable hold value.
     sheet.getRange(1, MOVE_COL.HOLD_TIME).setValue("Hold Time");
   }
+  // FIX: force the Date column to plain text so it stops getting silently
+  // auto-converted to a Date object on every future write. Runs every call
+  // (cheap, idempotent) so it also repairs sheets created before this fix.
+  sheet.getRange(2, MOVE_COL.DATE, Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('@');
   return sheet;
 }
 
@@ -266,7 +290,7 @@ function movementRowsForToday(vanNo) {
   var dateStr = today();
   var rows = [];
   for (var i = 1; i < values.length; i++) {
-    if (String(values[i][MOVE_COL.DATE - 1]).trim() === dateStr &&
+    if (normalizeDateStr(values[i][MOVE_COL.DATE - 1]) === dateStr &&
         String(values[i][MOVE_COL.VAN - 1]).trim() === target) {
       rows.push({ rowIndex: i + 1, values: values[i] });
     }
@@ -490,7 +514,7 @@ function getMovementHistory(vanNo, dateStr) {
   var day = dateStr || today();
   var result = [];
   for (var i = 1; i < values.length; i++) {
-    if (String(values[i][MOVE_COL.DATE - 1]).trim() === day &&
+    if (normalizeDateStr(values[i][MOVE_COL.DATE - 1]) === day &&
         (!target || String(values[i][MOVE_COL.VAN - 1]).trim() === target)) {
       result.push({
         vanNo: values[i][MOVE_COL.VAN - 1], route: values[i][MOVE_COL.ROUTE - 1],
@@ -579,9 +603,7 @@ function getVanStatusRow(vanNo) {
       var lastDate   = values[i][6];
       var roundCount = Number(values[i][5]) || 0;
       // Reset round count at start of new day
-      var lastDateStr = lastDate instanceof Date
-        ? Utilities.formatDate(lastDate, CONFIG.TIMEZONE, "yyyy-MM-dd")
-        : String(lastDate).substring(0, 10);
+      var lastDateStr = normalizeDateStr(lastDate);
       if (lastDate && lastDateStr !== todayStr) {
         roundCount = 0;
         sheet.getRange(i + 1, 6).setValue(0);
@@ -648,7 +670,7 @@ function trackBranchVisit(vanNo, branch) {
   var todayStr = today();
 
   for (var i = 1; i < values.length; i++) {
-    if (String(values[i][0]).trim() === target && String(values[i][1]) === todayStr) {
+    if (String(values[i][0]).trim() === target && normalizeDateStr(values[i][1]) === todayStr) {
       // Found today's row for this van
       var visited    = values[i][2] ? String(values[i][2]).split(",") : [];
       var roundCount = Number(values[i][3]) || 0;
@@ -683,7 +705,7 @@ function getRoundCount(vanNo) {
   var todayStr = today();
 
   for (var i = 1; i < values.length; i++) {
-    if (String(values[i][0]).trim() === target && String(values[i][1]) === todayStr) {
+    if (String(values[i][0]).trim() === target && normalizeDateStr(values[i][1]) === todayStr) {
       return Number(values[i][3]) || 0;
     }
   }
@@ -698,7 +720,7 @@ function getVisitedBranches(vanNo) {
   var todayStr = today();
 
   for (var i = 1; i < values.length; i++) {
-    if (String(values[i][0]).trim() === target && String(values[i][1]) === todayStr) {
+    if (String(values[i][0]).trim() === target && normalizeDateStr(values[i][1]) === todayStr) {
       var visited = values[i][2] ? String(values[i][2]).split(",").filter(Boolean) : [];
       return visited;
     }
