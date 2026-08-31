@@ -112,6 +112,8 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .route-choice.full{grid-template-columns:1fr}
 .route-option{border:2px solid #e2e8f0;border-radius:10px;padding:12px;cursor:pointer;text-align:left;background:#fff}
 .route-option.selected{border-color:#2563eb;background:#eff6ff}
+.route-option:disabled{opacity:0.55;cursor:default}
+.route-option.selected:disabled{opacity:1}
 .route-option strong{display:block;color:#2563eb;font-size:14px;margin-bottom:4px}
 .route-option span{display:block;color:#64748b;font-size:11px;line-height:1.4}
 .route-state{border-radius:12px;padding:16px;background:#eff6ff;border:1.5px solid #93c5fd;margin-top:12px}
@@ -280,6 +282,7 @@ let availableRoutes = {
   "ROUTE 2": ["TINKUNE","SATDOBATO","KALANKI","SWOYAMBHU","NAYA BUSPARK","BASUNDHARA","CHABAHIL","TINKUNE"]
 };
 let routeState = null;
+let lastConfirmedAt = 0;
 let routePollInterval = null;
 let routeTickInterval = null;
 let scanMode = "";
@@ -482,12 +485,14 @@ function startRoutePolling() {
 
 function chooseRoute(route) {
   if (currentRole !== 'driver') return;
+  if (selectedRoute) return; // already locked in — ignore further taps
   selectedRoute = route;
   localStorage.setItem('ncm_route', route);
   localStorage.setItem('ncm_route_day', new Date().toLocaleDateString('en-CA', { timeZone:'Asia/Kathmandu' }));
-  document.querySelectorAll('.route-option').forEach(el =>
-    el.classList.toggle('selected', el.dataset.route === route)
-  );
+  document.querySelectorAll('.route-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.route === route);
+    el.disabled = true; // lock all route options the instant one is picked
+  });
   renderRouteState();
 }
 
@@ -515,9 +520,11 @@ function renderRouteOptions() {
   if (!box) return;
   const names = Object.keys(availableRoutes);
   box.classList.toggle('full', names.length === 1);
+  const locked = !!selectedRoute;
   box.innerHTML = names.map(name =>
-    '<button class="route-option" data-route="' + escapeHtml(name) + '" onclick="chooseRoute(\'' +
-      escapeHtml(name).replace(/'/g, "\\'") + '\')">' +
+    '<button class="route-option' + (name === selectedRoute ? ' selected' : '') + '" data-route="' + escapeHtml(name) +
+      '" onclick="chooseRoute(\'' + escapeHtml(name).replace(/'/g, "\\'") + '\')"' +
+      (locked ? ' disabled' : '') + '>' +
       '<strong>' + escapeHtml(name) + '</strong><span>' +
       escapeHtml(availableRoutes[name].join(' → ')) + '</span></button>'
   ).join('');
@@ -544,6 +551,15 @@ async function loadRouteState() {
   try {
     const res = await apiGet({ action: 'getRouteState', vanNo: currentVanNo });
     if (res && res.success && res.state) {
+      // Guard: within 15s of our own confirmed check-in/check-out, ignore a poll
+      // result that looks like a downgrade (e.g. suddenly "not started") — that's
+      // almost always a stale/inconsistent read, not a real change, and applying
+      // it is what caused the screen to silently reset a few seconds after saving.
+      const recentlyConfirmed = (Date.now() - lastConfirmedAt) < 15000;
+      const looksLikeDowngrade = routeState && routeState.started && !res.state.started;
+      if (recentlyConfirmed && looksLikeDowngrade) {
+        return true;
+      }
       routeState = res.state;
       if (routeState.route) selectedRoute = routeState.route;
       renderRouteState();
@@ -649,6 +665,7 @@ async function sendRouteEvent(action, station, route) {
     }
     toast(res.message, 'ok');
     if (res.state) routeState = res.state; // adopt the server's authoritative numbers
+    lastConfirmedAt = Date.now();
     setRouteServerStatus(
       action === 'routeCheckOut'
         ? 'Saved. Van is now incoming to ' + routeState.nextStation + '.'
