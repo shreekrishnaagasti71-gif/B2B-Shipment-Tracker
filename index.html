@@ -7,26 +7,20 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Segoe UI,Arial,sans-serif;background:#f8fafc;color:#1e293b;min-height:100vh;padding-bottom:80px}
-.header{background:#fff;padding:13px 20px;text-align:center;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.05);position:relative}
+.header{background:#fff;padding:16px 20px;text-align:center;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
 .header h1{font-size:20px;color:#dc2626;font-weight:800;letter-spacing:0.5px}
 .header p{font-size:11px;color:#64748b;margin-top:2px}
-.live-clock{position:absolute;right:14px;top:12px;text-align:right;color:#2563eb;font-weight:800;font-size:12px;line-height:1.35}
-.live-clock small{display:block;color:#64748b;font-size:10px;font-weight:600}
-.top-timer{position:absolute;right:14px;top:44px;background:#16a34a;color:#fff;border-radius:8px;padding:4px 10px;font-family:monospace;font-weight:800;font-size:14px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.15)}
-.top-timer.late{background:#dc2626}
-.top-timer small{display:block;font-size:8px;font-weight:800;letter-spacing:.06em;font-family:Segoe UI,Arial,sans-serif;opacity:0.85}
 .container{padding:15px;max-width:520px;margin:0 auto}
 .login-box{background:#fff;border-radius:14px;padding:28px 20px;margin-top:20px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .login-box h2{text-align:center;color:#1e293b;margin-bottom:20px;font-size:18px;font-weight:700}
 .login-box input{width:100%;padding:14px;font-size:18px;border:2px solid #e2e8f0;border-radius:10px;background:#fff;color:#1e293b;text-align:center;letter-spacing:3px;font-weight:600}
 .login-box input:focus{outline:none;border-color:#dc2626}
-.btn{width:100%;padding:14px;font-size:15px;font-weight:700;border:none;border-radius:10px;cursor:pointer;transition:background 0.12s;text-transform:uppercase;letter-spacing:0.3px}
-.btn:active{opacity:0.85}
+.btn{width:100%;padding:14px;font-size:15px;font-weight:700;border:none;border-radius:10px;cursor:pointer;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.3px}
+.btn:active{transform:scale(0.98)}
 .btn-red{background:#dc2626;color:#fff}.btn-red:hover{background:#b91c1c}
 .btn-blue{background:#2563eb;color:#fff}.btn-blue:hover{background:#1d4ed8}
 .btn-green{background:#16a34a;color:#fff}.btn-green:hover{background:#15803d}
 .btn-grey{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1}.btn-grey:hover{background:#e2e8f0}
-.btn-outline-red{background:#fff;color:#dc2626;border:2px solid #dc2626}.btn-outline-red:hover{background:#fef2f2}.btn-outline-red:disabled{background:#f1f5f9;color:#94a3b8;border-color:#e2e8f0}
 .btn-small{padding:8px 14px;font-size:12px;width:auto}
 .nav-tabs{display:flex;gap:6px;margin-bottom:15px;background:#fff;padding:4px;border-radius:10px;border:1px solid #e2e8f0}
 .nav-tab{flex:1;padding:10px;text-align:center;background:transparent;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;color:#64748b;border:none}
@@ -38,55 +32,30 @@ input,select{width:100%;padding:11px;font-size:15px;border:1.5px solid #e2e8f0;b
 input:focus,select:focus{outline:none;border-color:#dc2626}
 input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e2e8f0}
 .scan-big{width:100%;padding:28px;font-size:18px;font-weight:800;border:none;border-radius:14px;cursor:pointer;background:#16a34a;color:#fff;text-transform:uppercase;letter-spacing:0.5px;box-shadow:0 4px 14px rgba(22,163,74,0.25);display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px}
-.scan-big:active{opacity:0.88}
+.scan-big:hover{background:#15803d;transform:translateY(-1px)}
+.scan-big:active{transform:scale(0.98)}
 .chip-box{background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;min-height:56px;margin-top:10px;position:relative}
 .chip-box:focus-within{border-color:#dc2626}
 .chip-list{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.chip{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:20px;padding:6px 10px 6px 14px;display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:#1e293b;animation:popIn 0.12s ease}
+.chip{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:20px;padding:6px 10px 6px 14px;display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:#1e293b;animation:popIn 0.15s ease}
 .chip .x{background:#cbd5e1;border:none;border-radius:50%;width:18px;height:18px;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;font-weight:700}
 .chip .x:hover{background:#dc2626}
 .chip-placeholder{color:#94a3b8;font-size:13px;font-style:italic}
 @keyframes popIn{from{transform:scale(0.8);opacity:0}to{transform:scale(1);opacity:1}}
 .branch-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
-.branch-card{background:#fff;border:2px solid #e2e8f0;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;transition:all 0.12s;font-size:13px;font-weight:700;color:#475569}
+.branch-card{background:#fff;border:2px solid #e2e8f0;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;transition:all 0.15s;font-size:13px;font-weight:700;color:#475569}
 .branch-card:active{transform:scale(0.96)}
 .branch-card.selected{background:#2563eb;border-color:#2563eb;color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.25)}
 .branch-card .branch-icon{font-size:20px;margin-bottom:4px;display:block}
 .branch-display{background:#f0f9ff;border:2px solid #2563eb;border-radius:10px;padding:14px;text-align:center;font-size:16px;font-weight:800;color:#2563eb;margin-bottom:12px}
-
-/* VAN CARDS — GREEN vs RED */
-.van-card{border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.12s;border:2px solid;contain:layout}
+.van-card{border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;border:2px solid}
 .van-card.green{background:#dcfce7;border-color:#16a34a;color:#14532d}
 .van-card.red{background:#fee2e2;border-color:#dc2626;color:#7f1d1d}
-.van-card.grey{background:#f1f5f9;border-color:#cbd5e1;color:#475569;cursor:default}
-.van-card.grey:active{transform:none}
-.van-card.offduty{background:#fef3c7;border-color:#ca8a04;color:#78350f;cursor:default}
-.van-card.offduty:active{transform:none}
 .van-card:active{transform:scale(0.98)}
 .van-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .van-title{font-size:16px;font-weight:800}
-.van-timer{font-size:24px;font-weight:800;font-family:monospace;letter-spacing:1px;will-change:contents}
+.van-timer{font-size:24px;font-weight:800;font-family:monospace;letter-spacing:1px}
 .van-meta{font-size:12px;font-weight:600;opacity:0.8;margin-top:4px}
-
-/* ALL-BRANCH MOVEMENT CARDS */
-.move-card{border-radius:10px;padding:12px 14px;margin-bottom:8px;border:1.5px solid;cursor:default;contain:layout}
-.move-card.incoming{background:#f0fdf4;border-color:#86efac}
-.move-card.incoming.late{background:#fff7ed;border-color:#fdba74}
-.move-card.outgoing{background:#eff6ff;border-color:#93c5fd}
-.move-card.outgoing.late{background:#fef2f2;border-color:#fca5a5}
-.move-card.idle{background:#f8fafc;border-color:#e2e8f0}
-.move-card.off-duty{background:#f1f5f9;border-color:#cbd5e1;opacity:0.75}
-.move-route{font-size:14px;font-weight:800;color:#1e293b}
-.move-route .arrow{color:#94a3b8;margin:0 6px;font-weight:400}
-.move-sub{font-size:11px;color:#64748b;font-weight:600;margin-top:3px}
-.move-timer{font-size:13px;font-weight:800;font-family:monospace;float:right;will-change:contents}
-.move-timer.late{color:#dc2626}
-.move-timer.ontime{color:#16a34a}
-.dir-badge{display:inline-block;font-size:10px;font-weight:800;padding:1px 6px;border-radius:4px;margin-right:5px;text-transform:uppercase}
-.dir-badge.in{background:#dcfce7;color:#15803d}
-.dir-badge.out{background:#dbeafe;color:#1d4ed8}
-.round-badge{display:inline-block;font-size:10px;font-weight:800;padding:1px 6px;border-radius:4px;background:#fef9c3;color:#854d0e;margin-left:4px}
-
 .cam-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:2000;flex-direction:column}
 .cam-modal.active{display:flex}
 .cam-modal video{width:100%;height:calc(100% - 80px);object-fit:cover}
@@ -108,44 +77,6 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .reset-btn{position:fixed;top:10px;right:10px;z-index:500;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer}
 .hidden{display:none!important}
 .mt-10{margin-top:10px}.mt-15{margin-top:15px}.flex{display:flex;gap:8px}.flex-1{flex:1}
-.route-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.route-choice.full{grid-template-columns:1fr}
-.route-option{border:2px solid #e2e8f0;border-radius:10px;padding:12px;cursor:pointer;text-align:left;background:#fff}
-.route-option.selected{border-color:#2563eb;background:#eff6ff}
-.route-option:disabled{opacity:0.55;cursor:default}
-.route-option.selected:disabled{opacity:1}
-.route-option strong{display:block;color:#2563eb;font-size:14px;margin-bottom:4px}
-.route-option span{display:block;color:#64748b;font-size:11px;line-height:1.4}
-.route-state{border-radius:12px;padding:16px;background:#eff6ff;border:1.5px solid #93c5fd;margin-top:12px}
-.route-state.moving{background:#f0fdf4;border-color:#86efac}
-.route-state.done{background:#fef3c7;border-color:#fcd34d}
-.route-state h3{font-size:18px;color:#1e293b;margin-bottom:5px}
-.route-state p{font-size:12px;color:#475569;margin-top:4px}
-.timer-label{font-size:11px;font-weight:800;letter-spacing:.08em;color:#64748b;margin-top:12px}
-.route-state .big-time{font:800 28px monospace;color:#2563eb;margin:10px 0}
-.big-time.on-time{color:#16a34a}.big-time.late{color:#dc2626}
-.route-stops{display:flex;gap:4px;overflow-x:auto;padding:5px 0 2px;margin-top:10px}
-.route-stop{font-size:10px;font-weight:700;color:#64748b;white-space:nowrap;background:#fff;border:1px solid #cbd5e1;padding:5px 7px;border-radius:6px}
-.route-stop.current{color:#fff;background:#2563eb;border-color:#2563eb}
-.route-stop.passed{color:#15803d;background:#dcfce7;border-color:#86efac}
-.monitor-card{border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;margin:8px 0;background:#fff}
-.monitor-card.moving{border-color:#86efac;background:#f0fdf4}
-.monitor-card.incoming{border-color:#93c5fd;background:#eff6ff}
-.monitor-head{display:flex;justify-content:space-between;align-items:center;font-weight:800}
-.monitor-sub{font-size:12px;color:#64748b;margin-top:5px}
-.monitor-time{font:800 17px monospace;margin-left:6px}.monitor-time.on-time{color:#16a34a}.monitor-time.late{color:#dc2626}
-.issue-box textarea{width:100%;min-height:75px;resize:vertical;padding:11px;font:15px inherit;border:1.5px solid #e2e8f0;border-radius:8px}
-.issue-row{border-bottom:1px solid #f1f5f9;padding:10px 0;font-size:12px}
-.issue-row:last-child{border-bottom:none}
-.issue-text{color:#1e293b;font-weight:600;margin:3px 0}
-.admin-action{padding:5px 8px;font-size:11px}
-.route-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.route-actions .btn{font-size:12px;padding:12px 6px}
-.btn-outline-red{background:#fff;color:#dc2626;border:2px solid #dc2626}.btn-outline-red:hover{background:#fee2e2}
-.route-actions .btn:disabled{opacity:.45;cursor:not-allowed}
-.route-server-status{font-size:11px;color:#64748b;margin-top:9px;min-height:15px;text-align:center}
-.route-server-status.bad{color:#dc2626;font-weight:700}
-.route-server-status.ok{color:#15803d}
 </style>
 </head>
 <body>
@@ -154,9 +85,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 
 <div class="header">
   <h1>NCM B2B TRACKER</h1>
-  <p>Route movement · Check in/out · Live</p>
-  <div class="live-clock" id="liveClock">--:--:--<small>--/--/----</small></div>
-  <div class="top-timer hidden" id="topTimerBadge"><small id="topTimerLabel">HOLD</small><span id="topTimerValue">00:00</span></div>
+  <p>Scan · Send · Receive · Live</p>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -171,83 +100,91 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 
   <div id="loginScreen" class="hidden">
     <div class="login-box">
-      <h2>Van / Branch Login</h2>
-      <input type="password" id="passcodeInput" placeholder="Enter passcode" maxlength="32" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()">
+      <h2>Branch Login</h2>
+      <input type="password" id="passcodeInput" placeholder="0000" maxlength="10">
       <button class="btn btn-red mt-10" onclick="login()">Login</button>
+      <p style="text-align:center;margin-top:10px;font-size:12px;color:#64748b">Driver passcode: <b>7777</b></p>
     </div>
   </div>
 
   <div id="mainApp" class="hidden">
 
     <div class="nav-tabs">
-      <button class="nav-tab active" id="routeNavTab" onclick="showTab('route',this)">Monitor</button>
-      <button class="nav-tab" onclick="showTab('vans',this)">All Vans</button>
-      <button class="nav-tab hidden" id="adminNavTab" onclick="showTab('admin',this)">Admin</button>
+      <div class="nav-tab active" onclick="showTab('send')">Send</div>
+      <div class="nav-tab" onclick="showTab('receive')">Receive</div>
     </div>
 
-    <!-- ROUTE-FIRST DRIVER VIEW -->
-    <div id="routeTab">
-      <div class="card" id="driverRouteCard">
-        <h4>🚐 Driver Route Movement</h4>
-        <p style="font-size:12px;color:#64748b;margin-bottom:10px">
-          Select your route once. At every station tap Check In when you arrive,
-          then Check Out when you leave. No shipment scan is required.
-        </p>
-        <div class="route-choice" id="routeChoice"></div>
-        <div id="routeStateBox" class="route-state">
-          <h3 id="routeStateTitle">Choose Route at Tinkune</h3>
-          <p id="routeStateText">Your first action starts Round 1 at Tinkune.</p>
-          <div class="route-stops" id="routeStops"></div>
-          <div class="timer-label" id="routeTimerLabel" style="display:none">HOLD TIME AT STATION</div>
-          <div class="route-state big-time" id="routeTimer" style="display:none">00:00</div>
-          <div class="route-actions">
-            <button class="btn btn-green" id="routeCheckInBtn" onclick="routeCheckIn()">CHECK IN AT TINKUNE</button>
-            <button class="btn btn-outline-red" id="routeCheckOutBtn" onclick="routeCheckOut()" disabled>CHECK OUT — CHECK IN FIRST</button>
+    <div id="sendTab">
+      <div class="card">
+        <h4>Send Shipment</h4>
+        <label>Origin Branch</label>
+        <input type="text" id="originBranchDisplay" readonly>
+        <label>Destination Branch</label>
+        <select id="destBranch"></select>
+        <label>Van Number</label>
+        <input type="text" id="sendVanNo" placeholder="e.g. 843">
+        <label>Shipment IDs <span style="font-weight:400;color:#94a3b8">— scan as fast as you want</span></label>
+        <div class="chip-box" onclick="document.getElementById('sendInput').focus()">
+          <div class="chip-list" id="sendChipList">
+            <span class="chip-placeholder">Scan or paste shipment IDs here</span>
           </div>
-          <div id="routeServerStatus" class="route-server-status" aria-live="polite"></div>
+          <textarea id="sendInput" style="position:absolute;opacity:0;height:0;width:0;left:0;top:0" oninput="handleSendInput(this)" onkeydown="sendKey(event)" onpaste="sendPaste(event)"></textarea>
+        </div>
+        <button class="scan-big" onclick="openCamera('send')">📷 Scan Barcodes</button>
+      </div>
+      <button class="btn btn-red mt-10" onclick="sendShipments()">SEND ALL (<span id="sendCount">0</span>)</button>
+    </div>
+
+    <div id="receiveTab" class="hidden">
+      <div class="card">
+        <h4>Receive Shipments</h4>
+
+        <div id="driverBranchBox" class="hidden">
+          <label style="color:#2563eb">DRIVER — Select Branch to Receive</label>
+          <div class="branch-grid" id="branchGrid"></div>
+        </div>
+
+        <div id="staffBranchBox" class="hidden">
+          <label>Receiving For Branch</label>
+          <div class="branch-display" id="staffBranchDisplay">-</div>
+        </div>
+
+        <div id="incomingVansSection" class="hidden mt-10">
+          <h4 style="font-size:13px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">🚐 Incoming Vans</h4>
+          <div id="incomingVansList"></div>
+        </div>
+
+        <label>Van Number</label>
+        <div class="flex">
+          <input type="text" id="recvVanNo" placeholder="e.g. 843" class="flex-1">
+          <button class="btn btn-blue btn-small" onclick="fetchPending()">Load List</button>
+        </div>
+        <button class="scan-big" onclick="openCamera('receive')">📷 Scan Barcodes</button>
+        <div style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <label style="margin:0">Scanned IDs <span style="font-weight:400;color:#94a3b8">— auto-sends after you pause</span></label>
+            <span style="font-size:12px;color:#64748b;font-weight:700" id="scanCount">0 items</span>
+          </div>
+          <div class="chip-box" style="min-height:70px" onclick="document.getElementById('recvInput').focus()">
+            <div class="chip-list" id="recvChipList">
+              <span class="chip-placeholder">Scanned shipment IDs appear here</span>
+            </div>
+            <textarea id="recvInput" style="position:absolute;opacity:0;height:0;width:0;left:0;top:0" oninput="handleRecvInput(this)" onkeydown="recvKey(event)" onpaste="recvPaste(event)"></textarea>
+          </div>
+        </div>
+        <button class="btn btn-grey mt-10" onclick="fetchPending()" style="padding:10px;font-size:12px">↻ Fetch Pending List from Sheet</button>
+      </div>
+      <button class="btn btn-green mt-10" id="recvBatchBtn" onclick="submitBatch()" disabled>RECEIVE ALL SCANNED (<span id="recvBtnCount">0</span>)</button>
+      <div id="pendingSection" class="hidden mt-15">
+        <div class="card">
+          <div class="pending-header">
+            <h4 style="margin:0">Pending in Sheet</h4>
+            <div class="pending-count" id="pendingCount">0</div>
+          </div>
+          <div class="shipment-list" id="shipmentList"></div>
+          <button class="btn btn-blue mt-10" onclick="receiveAllSheet()" style="font-size:13px">Receive All from Sheet</button>
         </div>
       </div>
-
-      <div class="card" id="branchMonitorCard">
-        <h4 id="monitorHeading">📍 Live Branch Monitor</h4>
-        <div id="routeMonitorList"><div style="font-size:13px;color:#94a3b8;text-align:center;padding:8px">Loading live van status…</div></div>
-      </div>
-    </div>
-
-    <!-- ADMIN CONTROL VIEW -->
-    <div id="adminTab" class="hidden">
-      <div class="card">
-        <h4>🛠 Admin — All Van Control</h4>
-        <p style="font-size:12px;color:#64748b;margin-bottom:8px">Live route status for every van. Reset keeps the movement history and allows a corrected route start.</p>
-        <div id="adminVanList"></div>
-      </div>
-      <div class="card">
-        <h4>➕ Create New Route</h4>
-        <p style="font-size:12px;color:#64748b;margin-bottom:8px">Add a route as a comma-separated circular list. The first and last station must be the same.</p>
-        <label>Route Name</label>
-        <input id="newRouteName" placeholder="Example: ROUTE 3">
-        <label class="mt-10">Stations in Order</label>
-        <textarea id="newRouteStops" style="width:100%;min-height:78px;resize:vertical;padding:11px;font:15px inherit;border:1.5px solid #e2e8f0;border-radius:8px" placeholder="TINKUNE, KALANKI, SATDOBATO, TINKUNE"></textarea>
-        <button class="btn btn-blue mt-10" onclick="createRoute()">SAVE NEW ROUTE</button>
-      </div>
-      <div class="card">
-        <div class="pending-header"><h4 style="margin:0">⚠ Open Issues</h4><button class="btn btn-grey btn-small" onclick="loadIssues()">↻ Refresh</button></div>
-        <div id="issueList"><div style="font-size:13px;color:#94a3b8">No open issues.</div></div>
-      </div>
-    </div>
-
-    <!-- ALL VANS TAB — company-wide board with large van cards -->
-    <div id="vansTab" class="hidden">
-      <div class="card">
-        <h4>🚐 All Van Movement — Company Wide</h4>
-        <div id="vansTabList"></div>
-      </div>
-    </div>
-
-    <div class="card issue-box">
-      <h4>📝 Report an Issue</h4>
-      <textarea id="issueInput" placeholder="Example: Van delayed, route blocked, or station issue…"></textarea>
-      <button class="btn btn-grey mt-10" onclick="submitIssue()">Send Issue to Admin</button>
     </div>
 
   </div>
@@ -267,24 +204,12 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 </div>
 
 <script>
-const APP_VERSION = "v16-checkout-diagnostics";
-const MIN_TRAVEL_SECONDS = 120;
+const APP_VERSION = "v14-complete";
 let SCRIPT_URL = localStorage.getItem('ncm_url') || "";
 let currentBranch = "";
 let currentRole = "";
-let currentVanNo = "";
 let currentDestinations = [];
 let driverBranches = [];
-let selectedRoute = localStorage.getItem('ncm_route') || "";
-let selectedRouteDay = localStorage.getItem('ncm_route_day') || "";
-let availableRoutes = {
-  "ROUTE 1": ["TINKUNE","CHABAHIL","BASUNDHARA","NAYA BUSPARK","SWOYAMBHU","KALANKI","SATDOBATO","TINKUNE"],
-  "ROUTE 2": ["TINKUNE","SATDOBATO","KALANKI","SWOYAMBHU","NAYA BUSPARK","BASUNDHARA","CHABAHIL","TINKUNE"]
-};
-let routeState = null;
-let lastConfirmedAt = 0;
-let routePollInterval = null;
-let routeTickInterval = null;
 let scanMode = "";
 let sendQueue = [];
 let recvQueue = [];
@@ -292,31 +217,15 @@ let barcodeDetector = null;
 let camStream = null;
 let isScanning = false;
 let recvTimer = null;
+let vanTimerInterval = null;
+let vanPollInterval = null;
 const RECV_AUTO_DELAY = 600;
-
-/* ===================== POLL + TICK INTERVALS =====================
-   Four separate interval handles — NO duplicates.
-   Poll intervals are deliberately longer (15-20s) to keep Apps Script
-   quota usage low and the app feeling snappy for 100+ concurrent users.
-*/
-let vanPollInterval     = null;
-let vanTickInterval     = null;
-let allVansPollInterval = null;
-let allVansTickInterval = null;
-
-/* ===================== INIT ===================== */
 
 function init() {
   const savedVersion = localStorage.getItem('ncm_version');
   if (savedVersion !== APP_VERSION) {
     localStorage.removeItem('ncm_session');
     localStorage.setItem('ncm_version', APP_VERSION);
-  }
-  const kathmanduDay = new Date().toLocaleDateString('en-CA', { timeZone:'Asia/Kathmandu' });
-  if (selectedRouteDay !== kathmanduDay) {
-    selectedRoute = "";
-    localStorage.removeItem('ncm_route');
-    localStorage.setItem('ncm_route_day', kathmanduDay);
   }
   if (!SCRIPT_URL) {
     document.getElementById('setupBox').classList.remove('hidden');
@@ -326,11 +235,10 @@ function init() {
   if (sess) {
     try {
       const s = JSON.parse(sess);
-      currentBranch      = s.branch       || "";
-      currentRole        = s.role         || "branch";
-      currentVanNo       = s.vanNo        || "";
-      currentDestinations= s.destinations || [];
-      driverBranches     = s.branches     || [];
+      currentBranch = s.branch || "";
+      currentRole = s.role || "branch";
+      currentDestinations = s.destinations || [];
+      driverBranches = s.branches || [];
       showApp();
       return;
     } catch(e){ localStorage.removeItem('ncm_session'); }
@@ -355,29 +263,17 @@ function saveUrl() {
   toast('Saved. Please login.', 'ok');
 }
 
-/* ===================== API — with 8s timeout ===================== */
-
 async function apiGet(params) {
-  const ctrl = new AbortController();
-  const tid  = setTimeout(() => ctrl.abort(), 8000);
-  try {
-    const res = await fetch(SCRIPT_URL + "?" + new URLSearchParams(params), { signal: ctrl.signal });
-    return res.json();
-  } finally { clearTimeout(tid); }
+  const res = await fetch(SCRIPT_URL + "?" + new URLSearchParams(params));
+  return res.json();
 }
-
 async function apiPost(body) {
-  const ctrl = new AbortController();
-  const tid  = setTimeout(() => ctrl.abort(), 12000);
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(body),
-      signal: ctrl.signal
-    });
-    return res.json();
-  } finally { clearTimeout(tid); }
+  const res = await fetch(SCRIPT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(body)
+  });
+  return res.json();
 }
 
 async function login() {
@@ -388,20 +284,17 @@ async function login() {
     if (res.success) {
       currentRole = res.role;
       if (res.role === 'branch') {
-        currentBranch       = res.branch;
-        currentVanNo        = "";
+        currentBranch = res.branch;
         currentDestinations = res.destinations || [];
       } else if (res.role === 'driver') {
-        currentBranch  = "";
-        currentVanNo   = res.vanNo || "";
-        driverBranches = res.branches || [];
-      } else if (res.role === 'admin') {
         currentBranch = "";
-        currentVanNo = "";
+        driverBranches = res.branches || [];
       }
       localStorage.setItem('ncm_session', JSON.stringify({
-        branch: currentBranch, role: currentRole,
-        vanNo: currentVanNo, destinations: currentDestinations, branches: driverBranches
+        branch: currentBranch,
+        role: currentRole,
+        destinations: currentDestinations,
+        branches: driverBranches
       }));
       showApp();
       toast('Welcome ' + (currentBranch || 'Driver'), 'ok');
@@ -415,48 +308,59 @@ function showApp() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('mainApp').classList.remove('hidden');
   document.getElementById('statusBar').classList.remove('hidden');
-  document.getElementById('userBranch').textContent =
-    currentRole === 'admin' ? 'ADMIN' : currentBranch || ('VAN ' + currentVanNo);
+  document.getElementById('userBranch').innerText = currentBranch || 'DRIVER';
 
   const badge = document.getElementById('roleBadge');
+  const driverBox = document.getElementById('driverBranchBox');
+  const staffBox = document.getElementById('staffBranchBox');
 
-  if (currentRole === 'admin') {
+  if (currentRole === 'driver') {
     badge.className = 'driver-badge';
-    badge.textContent = 'ADMIN';
-    document.getElementById('adminNavTab').classList.remove('hidden');
-    document.getElementById('driverRouteCard').classList.add('hidden');
-    document.getElementById('branchMonitorCard').classList.remove('hidden');
-    document.getElementById('routeNavTab').textContent = 'Monitor';
-  } else if (currentRole === 'driver') {
-    document.getElementById('adminNavTab').classList.add('hidden');
-    document.getElementById('driverRouteCard').classList.remove('hidden');
-    document.getElementById('branchMonitorCard').classList.add('hidden');
-    document.getElementById('routeNavTab').textContent = 'Monitor';
-    renderRouteOptions();
+    badge.innerText = 'DRIVER';
+    driverBox.classList.remove('hidden');
+    staffBox.classList.add('hidden');
+
+    const grid = document.getElementById('branchGrid');
+    grid.innerHTML = "";
+    driverBranches.forEach((b, idx) => {
+      const div = document.createElement('div');
+      div.className = 'branch-card' + (idx === 0 ? ' selected' : '');
+      div.innerHTML = '<span class="branch-icon">🏢</span>' + b;
+      div.onclick = function() {
+        document.querySelectorAll('.branch-card').forEach(c => c.classList.remove('selected'));
+        div.classList.add('selected');
+        currentBranch = b;
+        toast('Receiving for: ' + b, 'ok');
+      };
+      grid.appendChild(div);
+    });
+    if (driverBranches.length) currentBranch = driverBranches[0];
+
   } else {
-    document.getElementById('adminNavTab').classList.add('hidden');
-    document.getElementById('driverRouteCard').classList.add('hidden');
-    document.getElementById('branchMonitorCard').classList.remove('hidden');
-    document.getElementById('routeNavTab').textContent = 'Monitor';
     badge.className = '';
-    badge.textContent = 'BRANCH';
-    document.getElementById('monitorHeading').textContent = '📍 ' + currentBranch + ' Van Movement';
+    badge.innerText = '';
+    driverBox.classList.add('hidden');
+    staffBox.classList.remove('hidden');
+    document.getElementById('staffBranchDisplay').innerText = currentBranch;
   }
 
-  startRoutePolling();
-  loadRoutes();
-  if (currentRole === 'admin') loadIssues();
-  startAllVansPolling();
+  const destSel = document.getElementById('destBranch');
+  destSel.innerHTML = "";
+  currentDestinations.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d; opt.innerText = d;
+    destSel.appendChild(opt);
+  });
+  document.getElementById('originBranchDisplay').value = currentRole === 'driver' ? 'DRIVER' : currentBranch;
 }
 
-function showTab(tab, el) {
+function showTab(tab) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('vansTab').classList.toggle('hidden',    tab !== 'vans');
-  document.getElementById('routeTab').classList.toggle('hidden',   tab !== 'route');
-  document.getElementById('adminTab').classList.toggle('hidden',   tab !== 'admin');
-
-  startAllVansPolling();
+  event.target.classList.add('active');
+  document.getElementById('sendTab').classList.toggle('hidden', tab !== 'send');
+  document.getElementById('receiveTab').classList.toggle('hidden', tab !== 'receive');
+  if (tab === 'receive') startVanPolling();
+  else stopVanPolling();
 }
 
 function logout() {
@@ -465,674 +369,107 @@ function logout() {
 }
 
 function getActiveBranch() {
+  if (currentRole === 'driver') {
+    const selected = document.querySelector('.branch-card.selected');
+    return selected ? selected.innerText.replace('🏢', '').trim() : currentBranch;
+  }
   return currentBranch;
 }
 
-/* ===================== ROUTE MOVEMENT ===================== */
-
-function startRoutePolling() {
-  loadRouteState();
-  loadRouteDashboard();
-  if (routePollInterval) clearInterval(routePollInterval);
-  routePollInterval = setInterval(() => {
-    loadRouteState();
-    loadRouteDashboard();
-    if (currentRole === 'admin') loadIssues();
-  }, 10000);
-  if (routeTickInterval) clearInterval(routeTickInterval);
-  routeTickInterval = setInterval(tickRouteClock, 1000);
-}
-
-function chooseRoute(route) {
-  if (currentRole !== 'driver') return;
-  if (selectedRoute) return; // already locked in — ignore further taps
-  selectedRoute = route;
-  localStorage.setItem('ncm_route', route);
-  localStorage.setItem('ncm_route_day', new Date().toLocaleDateString('en-CA', { timeZone:'Asia/Kathmandu' }));
-  document.querySelectorAll('.route-option').forEach(el => {
-    el.classList.toggle('selected', el.dataset.route === route);
-    el.disabled = true; // lock all route options the instant one is picked
-  });
-  renderRouteState();
-}
-
-async function loadRoutes() {
-  try {
-    const res = await apiGet({ action:'getRoutes' });
-    if (!res.success || !res.routes) {
-      if (currentRole === 'driver') renderRouteOptions();
-      return;
-    }
-    availableRoutes = res.routes;
-    if (currentRole === 'driver') {
-      if (routeState && routeState.route) selectedRoute = routeState.route;
-      else if (!availableRoutes[selectedRoute]) selectedRoute = '';
-      renderRouteOptions();
-      renderRouteState();
-    }
-  } catch(e) {
-    if (currentRole === 'driver') renderRouteOptions();
-  }
-}
-
-function renderRouteOptions() {
-  const box = document.getElementById('routeChoice');
-  if (!box) return;
-  const names = Object.keys(availableRoutes);
-  box.classList.toggle('full', names.length === 1);
-  const locked = !!selectedRoute;
-  box.innerHTML = names.map(name =>
-    '<button class="route-option' + (name === selectedRoute ? ' selected' : '') + '" data-route="' + escapeHtml(name) +
-      '" onclick="chooseRoute(\'' + escapeHtml(name).replace(/'/g, "\\'") + '\')"' +
-      (locked ? ' disabled' : '') + '>' +
-      '<strong>' + escapeHtml(name) + '</strong><span>' +
-      escapeHtml(availableRoutes[name].join(' → ')) + '</span></button>'
-  ).join('');
-}
-
-async function createRoute() {
-  if (currentRole !== 'admin') return toast('Admin access required', 'bad');
-  const name = document.getElementById('newRouteName').value.trim();
-  const stops = document.getElementById('newRouteStops').value.trim();
-  if (!name || !stops) return toast('Enter route name and stations', 'bad');
-  try {
-    const res = await apiPost({ action:'createRoute', role:'admin', routeName:name, stations:stops });
-    toast(res.message || res.error, res.success ? 'ok' : 'bad');
-    if (res.success) {
-      document.getElementById('newRouteName').value = '';
-      document.getElementById('newRouteStops').value = '';
-      await loadRoutes();
-    }
-  } catch(e) { toast('Network error', 'bad'); }
-}
-
-async function loadRouteState() {
-  if (currentRole !== 'driver' || !currentVanNo) return false;
-  try {
-    const res = await apiGet({ action: 'getRouteState', vanNo: currentVanNo });
-    if (res && res.success && res.state) {
-      // Guard: within 15s of our own confirmed check-in/check-out, ignore a poll
-      // result that looks like a downgrade (e.g. suddenly "not started") — that's
-      // almost always a stale/inconsistent read, not a real change, and applying
-      // it is what caused the screen to silently reset a few seconds after saving.
-      const recentlyConfirmed = (Date.now() - lastConfirmedAt) < 15000;
-      const looksLikeDowngrade = routeState && routeState.started && !res.state.started;
-      if (recentlyConfirmed && looksLikeDowngrade) {
-        return true;
-      }
-      routeState = res.state;
-      if (routeState.route) selectedRoute = routeState.route;
-      renderRouteState();
-      return true;
-    }
-    if (res && !res.success) setRouteServerStatus('Apps Script: ' + (res.error || 'could not load route state'), 'bad');
-  } catch(e) {
-    setRouteServerStatus('Cannot read route state from Apps Script.', 'bad');
-  }
-  return false;
-}
-
-async function routeCheckIn() {
-  if (currentRole !== 'driver' || !currentVanNo) return toast('Driver session is missing', 'bad');
-  if (!routeState || !routeState.started) {
-    if (!selectedRoute) return toast('Choose a route first', 'bad');
-    const firstStop = (availableRoutes[selectedRoute] || [])[0] || 'TINKUNE';
-    return sendRouteEvent('routeCheckIn', firstStop, selectedRoute);
-  }
-  if (normalizedRouteStatus(routeState) === 'MOVING') {
-    if ((Number(routeState.elapsedSeconds) || 0) < MIN_TRAVEL_SECONDS) {
-      return toast('Check-in opens after 2 minutes of travel', 'warn');
-    }
-    return sendRouteEvent('routeCheckIn', routeState.nextStation, routeState.route);
-  }
-  return toast('The van is already checked in at ' + (routeState.station || 'this station'), 'warn');
-}
-
-async function routeCheckOut() {
-  if (currentRole !== 'driver' || !currentVanNo) return toast('Driver session is missing', 'bad');
-  if (!isAtStation(routeState)) {
-    return toast('Check in at the station before checking out', 'warn');
-  }
-  return sendRouteEvent('routeCheckOut', routeState.station, routeState.route);
-}
-
-function normalizedRouteStatus(state) {
-  return String(state && state.status || '').toUpperCase().replace(/[\s-]+/g, '_');
-}
-
-function isAtStation(state) {
-  return !!(state && state.started && normalizedRouteStatus(state) === 'AT_STATION');
-}
-
-function setRouteServerStatus(message, kind) {
-  const el = document.getElementById('routeServerStatus');
-  if (!el) return;
-  el.textContent = message || '';
-  el.className = 'route-server-status' + (kind ? ' ' + kind : '');
-}
-
-function localRouteStateAfterEvent(action, station, routeName) {
-  const stops = availableRoutes[routeName] || [];
-  const index = Math.max(0, stops.indexOf(station));
-  const priorRound = Number(routeState && routeState.round) || 1;
-  let round = priorRound;
-  if (action === 'routeCheckIn' && routeState &&
-      normalizedRouteStatus(routeState) === 'MOVING' && index === 0) {
-    round = priorRound + 1;
-  }
-  const moving = action === 'routeCheckOut';
-  return {
-    vanNo: currentVanNo, started: true, route: routeName,
-    round: Math.min(round, 3), stopIndex: index, station: station,
-    nextStation: stops[index + 1] || stops[1] || station,
-    status: moving ? 'MOVING' : 'AT_STATION',
-    elapsedSeconds: 0, holdSeconds: 0, travelSeconds: 0
-  };
-}
-
-// Backward-compatible handler for any cached page still calling the old button.
-async function routeAction() {
-  if (isAtStation(routeState)) return routeCheckOut();
-  return routeCheckIn();
-}
-
-// When the server says success:true for a check-in/check-out, that outcome is
-// final — the action DID happen. If the "state" details it sends back disagree
-// (wrong status, started:false, etc.), that's a bad/stale read on the server's
-// side, not a reason to show the driver the wrong screen. So we always trust
-// the action's own outcome for started/status, and only take extra detail
-// (station names, round, timers) from the server's state when present.
-function reconcileConfirmedState(action, station, route, serverState) {
-  const expectedStatus = action === 'routeCheckOut' ? 'MOVING' : 'AT_STATION';
-  const base = serverState && typeof serverState === 'object'
-    ? Object.assign({}, serverState)
-    : localRouteStateAfterEvent(action, station, route);
-  base.started = true;
-  if (normalizedRouteStatus(base) !== expectedStatus) base.status = expectedStatus;
-  if (!base.station) base.station = station;
-  if (!base.route) base.route = route;
-  routeState = base;
-}
-
-async function sendRouteEvent(action, station, route) {
-  const clickedBtn = action === 'routeCheckOut'
-    ? document.getElementById('routeCheckOutBtn')
-    : document.getElementById('routeCheckInBtn');
-
-  // Instant UI update — don't make the driver wait on Google Sheets to see
-  // Check Out unlock or the stopwatch start. We reconcile with the server
-  // as soon as it responds, and roll back only if the save actually failed.
-  const previousState = routeState;
-  routeState = localRouteStateAfterEvent(action, station, route);
-  if (clickedBtn) clickedBtn.disabled = true;
-  renderRouteState();
-  setRouteServerStatus('Saving ' + (action === 'routeCheckOut' ? 'check out' : 'check in') + ' to Google Sheets…');
-
-  try {
-    const body = { action: action, vanNo: currentVanNo, station: station, route: route };
-    const res = await apiPost(body);
-    if (!res || typeof res !== 'object') {
-      setRouteServerStatus('Saved on screen, but the server response was invalid — will resync shortly.', 'warn');
-      return;
-    }
-    if (!res.success) {
-      routeState = previousState;
-      renderRouteState();
-      setRouteServerStatus('Apps Script: ' + (res.error || 'route update failed') + ' — reverted.', 'bad');
-      return toast(res.error || 'Could not update route — reverted', 'bad');
-    }
-    toast(res.message, 'ok');
-    reconcileConfirmedState(action, station, route, res.state);
-    lastConfirmedAt = Date.now();
-    setRouteServerStatus(
-      action === 'routeCheckOut'
-        ? 'Saved. Van is now incoming to ' + routeState.nextStation + '.'
-        : 'Saved. Hold timer is running at ' + routeState.station + '.', 'ok'
-    );
-    renderRouteState();
-    loadRouteDashboard();
-    setTimeout(loadAllVans, 800);
-  } catch(e) {
-    setRouteServerStatus('Cannot reach Apps Script — will keep retrying in the background.', 'bad');
-    toast('Network error — the app will resync automatically', 'warn');
-  } finally {
-    if (clickedBtn) clickedBtn.disabled = false;
-    renderRouteState();
-  }
-}
-
-function fmtSeconds(total) {
-  total = Math.max(0, Math.floor(Number(total) || 0));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  return (h ? String(h).padStart(2,'0') + ':' : '') +
-    String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
-}
-
-function renderRouteState() {
-  if (currentRole !== 'driver') return;
-  document.querySelectorAll('.route-option').forEach(el =>
-    el.classList.toggle('selected', el.dataset.route === selectedRoute)
-  );
-  const box = document.getElementById('routeStateBox');
-  const title = document.getElementById('routeStateTitle');
-  const text = document.getElementById('routeStateText');
-  const checkInBtn = document.getElementById('routeCheckInBtn');
-  const checkOutBtn = document.getElementById('routeCheckOutBtn');
-  const timer = document.getElementById('routeTimer');
-  const timerLabel = document.getElementById('routeTimerLabel');
-  const stops = document.getElementById('routeStops');
-  const route = availableRoutes[selectedRoute] || availableRoutes['ROUTE 1'] || [];
-
-  if (!routeState || !routeState.started) {
-    document.getElementById('routeChoice').classList.remove('hidden');
-    const firstStop = (route[0]) || 'TINKUNE';
-    title.textContent = selectedRoute ? selectedRoute + ' — Ready at ' + firstStop : 'Choose Route at Tinkune';
-    text.textContent = selectedRoute ? 'Tap Check In to start Round 1.' : 'Your first action starts Round 1 at Tinkune.';
-    checkInBtn.textContent = 'CHECK IN AT ' + firstStop;
-    checkInBtn.disabled = !selectedRoute;
-    checkOutBtn.textContent = 'CHECK OUT — CHECK IN FIRST';
-    checkOutBtn.disabled = true;
-    timerLabel.style.display = 'none';
-    timer.style.display = 'none';
-    box.className = 'route-state';
-  } else {
-    const s = routeState;
-    const status = normalizedRouteStatus(s);
-    document.getElementById('routeChoice').classList.add('hidden');
-    title.textContent = status === 'MOVING'
-      ? 'Heading to ' + s.nextStation
-      : status === 'OFF_DUTY' ? '3 rounds complete' : 'At ' + s.station;
-    text.textContent = status === 'MOVING'
-      ? 'Round ' + s.round + ' · Check in when you arrive'
-      : status === 'OFF_DUTY' ? 'Van is off duty for today.' : 'Round ' + s.round + ' · Check out when leaving';
-    const travelReady = (Number(s.elapsedSeconds) || 0) >= MIN_TRAVEL_SECONDS;
-    checkInBtn.textContent = status === 'MOVING'
-      ? travelReady ? 'CHECK IN AT ' + s.nextStation : 'CHECK IN OPENS IN ' + fmtSeconds(MIN_TRAVEL_SECONDS - (Number(s.elapsedSeconds) || 0))
-      : status === 'AT_STATION' ? 'CHECK IN COMPLETE' : 'ROUTE COMPLETE';
-    checkInBtn.disabled = status !== 'MOVING' || !travelReady;
-    checkOutBtn.textContent = status === 'AT_STATION'
-      ? 'CHECK OUT FROM ' + s.station : 'CHECK OUT — CHECK IN FIRST';
-    checkOutBtn.disabled = status !== 'AT_STATION';
-    timerLabel.textContent = status === 'MOVING'
-      ? 'TRAVEL TIME TO ' + s.nextStation
-      : 'HOLD TIME AT ' + s.station;
-    timerLabel.style.display = 'block';
-    timer.style.display = status === 'OFF_DUTY' ? 'none' : 'block';
-    timer.textContent = fmtSeconds(s.elapsedSeconds);
-    timer.className = 'route-state big-time ' +
-      ((Number(s.elapsedSeconds) || 0) >= 600 ? 'late' : 'on-time');
-    box.className = 'route-state ' + (status === 'MOVING' ? 'moving' : status === 'OFF_DUTY' ? 'done' : '');
-  }
-  stops.innerHTML = route.map((stop, i) => {
-    const isCurrent = routeState && routeState.started &&
-      ((routeState.status === 'MOVING' && i === routeState.stopIndex + 1) ||
-       (routeState.status !== 'MOVING' && i === routeState.stopIndex));
-    const passed = routeState && routeState.started && i < routeState.stopIndex;
-    return '<span class="route-stop ' + (isCurrent ? 'current' : passed ? 'passed' : '') + '">' +
-      (i + 1) + '. ' + stop + '</span>';
-  }).join('');
-  updateTopTimer();
-}
-
-function tickRouteClock() {
-  if (routeState && routeState.started && routeState.status !== 'OFF_DUTY') {
-    routeState.elapsedSeconds = (Number(routeState.elapsedSeconds) || 0) + 1;
-    const timer = document.getElementById('routeTimer');
-    if (timer && timer.style.display !== 'none') timer.textContent = fmtSeconds(routeState.elapsedSeconds);
-    if (timer) {
-      timer.classList.toggle('late', routeState.elapsedSeconds >= 600);
-      timer.classList.toggle('on-time', routeState.elapsedSeconds < 600);
-    }
-    updateTopTimer();
-    renderRouteState();
-  } else {
-    const badge = document.getElementById('topTimerBadge');
-    if (badge) badge.classList.add('hidden');
-  }
-  updateLiveClock();
-}
-
-function updateTopTimer() {
-  const badge = document.getElementById('topTimerBadge');
-  const label = document.getElementById('topTimerLabel');
-  const value = document.getElementById('topTimerValue');
-  if (!badge || !routeState || !routeState.started || normalizedRouteStatus(routeState) === 'OFF_DUTY') {
-    if (badge) badge.classList.add('hidden');
-    return;
-  }
-  const moving = normalizedRouteStatus(routeState) === 'MOVING';
-  badge.classList.remove('hidden');
-  label.textContent = moving ? 'TRAVEL' : 'HOLD';
-  value.textContent = fmtSeconds(routeState.elapsedSeconds);
-  badge.classList.toggle('late', (Number(routeState.elapsedSeconds) || 0) >= 600);
-}
-
-async function loadRouteDashboard() {
-  try {
-    const res = await apiGet({ action: 'getRouteDashboard' });
-    if (!res.success) return;
-    const vans = res.data || [];
-    renderRouteMonitor(vans);
-    if (currentRole === 'admin') renderAdminVans(vans);
-  } catch(e) {}
-}
-
-function renderRouteMonitor(vans) {
-  const list = document.getElementById('routeMonitorList');
-  if (!list) return;
-  const branch = currentRole === 'branch' ? currentBranch : '';
-  const shown = branch ? vans.filter(v =>
-    v.toBranch === branch || v.fromBranch === branch ||
-    (v.status === 'idle' && v.lastLocation === branch)
-  ) : vans;
-  if (!shown.length) {
-    list.innerHTML = '<div style="font-size:13px;color:#94a3b8;text-align:center;padding:8px">' +
-      (branch ? 'No vans currently connected to ' + branch : 'No van activity yet.') + '</div>';
-    return;
-  }
-  list.innerHTML = shown.map(v => {
-    const moving = v.status === 'moving';
-    const incoming = moving && v.toBranch === branch;
-    const totalSeconds = moving
-      ? (Number(v.elapsedMinutes || 0) * 60 + Number(v.elapsedSeconds || 0))
-      : Number(v.holdElapsedSeconds || 0);
-    const time = (moving || totalSeconds) ? fmtSeconds(totalSeconds) : '';
-    const timerClass = totalSeconds >= 600 ? 'late' : 'on-time';
-    const timeMarkup = time ? '<span class="monitor-time ' + timerClass + '">' + time + '</span>' : '';
-    return '<div class="monitor-card ' + (moving ? (incoming ? 'incoming' : 'moving') : '') + '">' +
-      '<div class="monitor-head"><span>Van ' + v.vanNo + '</span><span>' +
-      (moving ? (incoming ? '🟢 INCOMING' : '🔵 MOVING') : v.status === 'off_duty' ? '✓ OFF DUTY' : 'AT ' + (v.lastLocation || '—')) +
-      '</span></div>' +
-      '<div class="monitor-sub">' +
-      (moving ? v.fromBranch + ' → ' + v.toBranch + ' · ' + timeMarkup :
-       (v.route ? v.route + ' · ' : '') + (v.roundLabel || 'Not started') +
-       (time ? ' · Hold <span class="monitor-time ' + timerClass + '">' + time + '</span>' : '')) +
-      '</div></div>';
-  }).join('');
-}
-
-function renderAdminVans(vans) {
-  const list = document.getElementById('adminVanList');
-  if (!list) return;
-  list.innerHTML = vans.map(v =>
-    '<div class="monitor-card ' + (v.status === 'moving' ? 'moving' : '') + '">' +
-    '<div class="monitor-head"><span>Van ' + v.vanNo + '</span><button class="btn btn-grey admin-action" onclick="resetVan(\'' + v.vanNo + '\')">Reset today</button></div>' +
-    '<div class="monitor-sub">' + (v.status === 'moving'
-      ? v.fromBranch + ' → ' + v.toBranch + ' · ' + (v.roundLabel || '')
-      : (v.status === 'off_duty' ? 'Off duty at ' + v.lastLocation : 'At ' + (v.lastLocation || 'Not started'))) + '</div></div>'
-  ).join('') || '<div style="font-size:13px;color:#94a3b8">No vans registered.</div>';
-}
-
-async function resetVan(vanNo) {
-  if (!confirm('Reset Van ' + vanNo + ' for today? History will stay in the sheet.')) return;
-  try {
-    const res = await apiPost({ action:'adminResetVan', vanNo:vanNo });
-    toast(res.message || res.error, res.success ? 'ok' : 'bad');
-    if (res.success) loadRouteDashboard();
-  } catch(e) { toast('Network error', 'bad'); }
-}
-
-async function submitIssue() {
-  const input = document.getElementById('issueInput');
-  const issue = input.value.trim();
-  if (!issue) return toast('Write the issue first', 'bad');
-  try {
-    const res = await apiPost({
-      action:'submitIssue', issue:issue, role:currentRole,
-      branch:currentBranch, vanNo:currentVanNo,
-      reportedBy:currentRole === 'driver' ? 'Van ' + currentVanNo : currentBranch || 'Admin'
-    });
-    toast(res.message || res.error, res.success ? 'ok' : 'bad');
-    if (res.success) input.value = '';
-  } catch(e) { toast('Network error', 'bad'); }
-}
-
-async function loadIssues() {
-  if (currentRole !== 'admin') return;
-  try {
-    const res = await apiGet({ action:'getIssues' });
-    const list = document.getElementById('issueList');
-    if (!list) return;
-    const issues = res.data || [];
-    list.innerHTML = issues.length ? issues.map(i =>
-      '<div class="issue-row"><b>' + i.date + ' ' + i.time + '</b> · ' +
-      (i.reportedBy || i.role) + (i.vanNo ? ' · Van ' + i.vanNo : '') +
-      '<div class="issue-text">' + escapeHtml(i.issue) + '</div>' +
-      '<button class="btn btn-grey admin-action" onclick="closeIssue(' + i.row + ')">Close issue</button></div>'
-    ).join('') : '<div style="font-size:13px;color:#94a3b8">No open issues.</div>';
-  } catch(e) {}
-}
-
-async function closeIssue(row) {
-  try {
-    const res = await apiPost({ action:'closeIssue', row:row });
-    toast(res.message || res.error, res.success ? 'ok' : 'bad');
-    if (res.success) loadIssues();
-  } catch(e) { toast('Network error', 'bad'); }
-}
-
-function escapeHtml(value) {
-  return String(value || '').replace(/[&<>"']/g, c =>
-    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-function updateLiveClock() {
-  const now = new Date();
-  const opts = { timeZone:'Asia/Kathmandu', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false };
-  const dateOpts = { timeZone:'Asia/Kathmandu', day:'2-digit', month:'2-digit', year:'numeric' };
-  const el = document.getElementById('liveClock');
-  if (el) el.innerHTML = now.toLocaleTimeString('en-GB', opts) +
-    '<small>' + now.toLocaleDateString('en-GB', dateOpts) + '</small>';
-}
-
-/* ===================== INCOMING VANS (Receive tab) ===================== */
+/* ===================== INCOMING VANS ===================== */
 
 function startVanPolling() {
   loadIncomingVans();
   if (vanPollInterval) clearInterval(vanPollInterval);
-  vanPollInterval = setInterval(loadIncomingVans, 15000); // 15s — fresh enough, low quota
+  vanPollInterval = setInterval(loadIncomingVans, 10000);
 }
 
 function stopVanPolling() {
-  if (vanPollInterval)  { clearInterval(vanPollInterval);  vanPollInterval  = null; }
-  if (vanTickInterval)  { clearInterval(vanTickInterval);  vanTickInterval  = null; }
+  if (vanPollInterval) clearInterval(vanPollInterval);
+  stopVanTimers();
 }
 
 async function loadIncomingVans() {
   const branch = getActiveBranch();
   if (!branch) return;
   try {
-    const res  = await apiGet({ action: "getIncomingVans", branch: branch });
+    const res = await apiGet({ action: "getIncomingVans", branch: branch });
+    if (!res.success) {
+      toast(res.error || 'Server error', 'bad');
+      return;
+    }
     const vans = res.data || [];
     const section = document.getElementById('incomingVansSection');
-    const list    = document.getElementById('incomingVansList');
-
-    if (vans.length === 0) { section.classList.add('hidden'); stopVanTick(); return; }
-
+    const list = document.getElementById('incomingVansList');
+    if (vans.length === 0) {
+      section.classList.add('hidden');
+      stopVanTimers();
+      return;
+    }
     section.classList.remove('hidden');
-    list.innerHTML = vans.map((v, idx) => `
-      <div class="van-card ${v.isLate ? 'red' : 'green'}" onclick="fillVanNo('${v.vanNo}')">
+    list.innerHTML = vans.map((v, idx) => {
+      const min = safeNum(v.elapsedMinutes);
+      const sec = safeNum(v.elapsedSeconds);
+      const cls = v.isLate ? 'red' : 'green';
+      return `
+      <div class="van-card ${cls}" onclick="fillVanNo('${escapeHtml(v.vanNo)}')" id="van-${idx}">
         <div class="van-header">
-          <span class="van-title">Van ${v.vanNo} from ${v.origin}</span>
-          ${v.roundLabel ? '<span class="round-badge">Round ' + v.roundLabel + '</span>' : ''}
+          <span class="van-title">Van ${escapeHtml(v.vanNo)} from ${escapeHtml(v.origin)}</span>
+          <span class="van-timer" id="timer-${idx}" data-min="${min}" data-sec="${sec}">${pad(min)}:${pad(sec)}</span>
         </div>
-        <div class="van-timer" id="inVanTimer_${idx}"
-             data-start="${Date.now() - (v.elapsedMinutes*60 + v.elapsedSeconds)*1000}">
-          ${fmt(v.elapsedMinutes, v.elapsedSeconds)}
-        </div>
-        <div class="van-meta">${v.count} shipment(s) — Tap to select van</div>
-      </div>
-    `).join('');
-
-    startVanTick();
-  } catch(e) {}
+        <div class="van-meta">${safeNum(v.count)} shipment(s) coming — Tap to select</div>
+      </div>`;
+    }).join('');
+    startVanTimers();
+  } catch(e) {
+    toast('Failed to load vans: ' + e.message, 'bad');
+  }
 }
 
-function startVanTick() {
-  if (vanTickInterval) clearInterval(vanTickInterval);
-  vanTickInterval = setInterval(() => {
-    document.querySelectorAll('[id^="inVanTimer_"]').forEach(el => {
-      const elapsed = Math.floor((Date.now() - +el.dataset.start) / 1000);
-      const min = Math.floor(elapsed / 60), sec = elapsed % 60;
-      el.textContent = fmt(min, sec);
+function safeNum(v) {
+  var n = parseInt(v);
+  return isNaN(n) ? 0 : n;
+}
+
+function escapeHtml(text) {
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(text));
+  return div.innerHTML;
+}
+
+function pad(n) {
+  var num = safeNum(n);
+  return String(num).padStart(2, '0');
+}
+
+function startVanTimers() {
+  if (vanTimerInterval) clearInterval(vanTimerInterval);
+  vanTimerInterval = setInterval(() => {
+    document.querySelectorAll('.van-timer').forEach(el => {
+      let min = safeNum(el.dataset.min);
+      let sec = safeNum(el.dataset.sec);
+      sec++;
+      if (sec >= 60) { sec = 0; min++; }
+      el.dataset.min = min;
+      el.dataset.sec = sec;
+      el.innerText = pad(min) + ':' + pad(sec);
       const card = el.closest('.van-card');
-      if (card) {
-        const late = min >= 10;
-        card.classList.toggle('red',   late);
-        card.classList.toggle('green', !late);
+      if (min >= 20 && card && card.classList.contains('green')) {
+        card.classList.remove('green');
+        card.classList.add('red');
       }
     });
   }, 1000);
 }
 
-function stopVanTick() {
-  if (vanTickInterval) { clearInterval(vanTickInterval); vanTickInterval = null; }
+function stopVanTimers() {
+  if (vanTimerInterval) clearInterval(vanTimerInterval);
 }
 
 function fillVanNo(van) {
   document.getElementById('recvVanNo').value = van;
   fetchPending();
   toast('Van ' + van + ' selected', 'ok');
-}
-
-/* ===================== ALL VANS — branch-filtered strip + full vans tab ===================== */
-
-function startAllVansPolling() {
-  loadAllVans();
-  if (allVansPollInterval) clearInterval(allVansPollInterval);
-  allVansPollInterval = setInterval(loadAllVans, 20000); // 20s — keeps quota low for 100+ users
-
-  if (allVansTickInterval) clearInterval(allVansTickInterval);
-  allVansTickInterval = setInterval(tickAllVansTimers, 1000);
-}
-
-function stopAllVansPolling() {
-  if (allVansPollInterval) { clearInterval(allVansPollInterval); allVansPollInterval = null; }
-  if (allVansTickInterval) { clearInterval(allVansTickInterval); allVansTickInterval = null; }
-}
-
-async function loadAllVans() {
-  try {
-    const res  = await apiGet({ action: "getAllVans" });
-    const vans = res.data || [];
-
-    const sorted = [...vans].sort((a, b) => {
-      if (a.status === 'moving' && b.status !== 'moving') return -1;
-      if (a.status !== 'moving' && b.status === 'moving') return 1;
-      return 0;
-    });
-
-    renderAllVansStrip(sorted);  // branch-filtered strip on Send/Receive tabs
-    renderVansTabBoard(sorted);  // full company board on All Vans tab
-  } catch(e) {}
-}
-
-// ── Branch-filtered strip: only show vans going TO or FROM this branch ───
-function renderAllVansStrip(vans) {
-  const section = document.getElementById('allVansSection');
-  const list    = document.getElementById('allVansMoveList');
-  if (!section || !list) return;
-  const branch  = currentBranch;
-
-  // Only show vans that involve this branch (incoming OR outgoing)
-  const relevant = vans.filter(v =>
-    v.status === 'moving' &&
-    (v.toBranch === branch || v.fromBranch === branch)
-  );
-
-  if (relevant.length === 0) { section.classList.add('hidden'); return; }
-  section.classList.remove('hidden');
-
-  list.innerHTML = relevant.map((v) => {
-    const isIncoming  = v.toBranch === branch;
-    const dirClass    = isIncoming ? 'incoming' : 'outgoing';
-    const dirLabel    = isIncoming
-      ? '<span class="dir-badge in">INCOMING</span>'
-      : '<span class="dir-badge out">OUTGOING</span>';
-    const roundTag    = v.roundLabel
-      ? '<span class="round-badge">Round ' + v.roundLabel + '</span>'
-      : '';
-    const startEpoch  = Date.now() - (v.elapsedMinutes * 60 + v.elapsedSeconds) * 1000;
-    return `
-      <div class="move-card ${dirClass} ${v.isLate ? 'late' : ''}"
-           data-start="${startEpoch}">
-        <span class="move-timer ${v.isLate ? 'late' : 'ontime'}">${fmt(v.elapsedMinutes, v.elapsedSeconds)}</span>
-        <div class="move-route">Van ${v.vanNo}: ${v.fromBranch}<span class="arrow">→</span>${v.toBranch} ${roundTag}</div>
-        <div class="move-sub">${dirLabel} ${v.isLate ? '⚠ Running long' : '✓ On schedule'}</div>
-      </div>`;
-  }).join('');
-}
-
-// ── Full company-wide board on All Vans tab ───────────────────────────────
-function renderVansTabBoard(vans) {
-  const list = document.getElementById('vansTabList');
-  if (vans.length === 0) {
-    list.innerHTML = '<div style="padding:14px;text-align:center;color:#94a3b8;font-size:13px">No van activity yet.</div>';
-    return;
-  }
-  list.innerHTML = vans.map((v, idx) => {
-    if (v.status === 'moving') {
-      const roundTag   = v.roundLabel ? ' · Round ' + v.roundLabel : '';
-      const startEpoch = Date.now() - (v.elapsedMinutes * 60 + v.elapsedSeconds) * 1000;
-      return `
-        <div class="van-card ${v.isLate ? 'red' : 'green'}">
-          <div class="van-header">
-            <span class="van-title">Van ${v.vanNo}</span>
-            ${v.roundLabel ? '<span class="round-badge">Round ' + v.roundLabel + '</span>' : ''}
-          </div>
-          <div class="van-meta" style="font-size:13px;font-weight:700;margin-bottom:4px">${v.fromBranch} → ${v.toBranch}${roundTag}</div>
-          <div class="van-timer" id="allVanTimer_${idx}" data-start="${startEpoch}">
-            ${fmt(v.elapsedMinutes, v.elapsedSeconds)}
-          </div>
-        </div>`;
-    } else if (v.status === 'off_duty') {
-      return `
-        <div class="van-card offduty">
-          <div class="van-header"><span class="van-title">Van ${v.vanNo}</span><span class="round-badge">${v.roundLabel || 'Done'}</span></div>
-          <div class="van-meta">✓ Off duty — parked at ${v.lastLocation}</div>
-        </div>`;
-    } else {
-      return `
-        <div class="van-card grey">
-          <div class="van-header"><span class="van-title">Van ${v.vanNo}</span></div>
-          <div class="van-meta">Idle — parked at ${v.lastLocation}</div>
-        </div>`;
-    }
-  }).join('');
-}
-
-// ── Tick all moving-van timers every second (uses absolute start epoch) ───
-function tickAllVansTimers() {
-  const now = Date.now();
-
-  // Strip timers
-  document.querySelectorAll('#allVansMoveList .move-card[data-start]').forEach(card => {
-    const elapsed = Math.floor((now - +card.dataset.start) / 1000);
-    const min = Math.floor(elapsed / 60), sec = elapsed % 60;
-    const timerEl = card.querySelector('.move-timer');
-    if (timerEl) timerEl.textContent = fmt(min, sec);
-    const late = min >= 10;
-    card.classList.toggle('late', late);
-    if (timerEl) {
-      timerEl.classList.toggle('late',   late);
-      timerEl.classList.toggle('ontime', !late);
-    }
-  });
-
-  // All-vans tab timers
-  document.querySelectorAll('[id^="allVanTimer_"]').forEach(el => {
-    const elapsed = Math.floor((now - +el.dataset.start) / 1000);
-    const min = Math.floor(elapsed / 60), sec = elapsed % 60;
-    el.textContent = fmt(min, sec);
-    const card = el.closest('.van-card');
-    if (card) {
-      const late = min >= 10;
-      card.classList.toggle('red',   late);
-      card.classList.toggle('green', !late);
-    }
-  });
 }
 
 /* ===================== CHIPS ===================== */
@@ -1152,7 +489,7 @@ function removeChip(containerId, id) {
   if (containerId === 'sendChipList') {
     sendQueue = sendQueue.filter(x => x !== id);
     renderChips('sendChipList', sendQueue, 'Scan or paste shipment IDs here');
-    document.getElementById('sendCount').textContent = sendQueue.length;
+    document.getElementById('sendCount').innerText = sendQueue.length;
   } else {
     recvQueue = recvQueue.filter(x => x !== id);
     renderChips('recvChipList', recvQueue, 'Scanned shipment IDs appear here');
@@ -1166,7 +503,7 @@ function addChip(id, containerId, queueArray, placeholder) {
   queueArray.push(id);
   renderChips(containerId === 'sendChipList' ? 'sendChipList' : 'recvChipList', queueArray, placeholder);
   if (containerId === 'sendChipList') {
-    document.getElementById('sendCount').textContent = sendQueue.length;
+    document.getElementById('sendCount').innerText = sendQueue.length;
   } else {
     updateRecvBtn();
   }
@@ -1183,8 +520,8 @@ function cleanId(raw) {
 
 function updateRecvBtn() {
   const btn = document.getElementById('recvBatchBtn');
-  document.getElementById('scanCount').textContent   = recvQueue.length + ' items';
-  document.getElementById('recvBtnCount').textContent = recvQueue.length;
+  document.getElementById('scanCount').innerText = recvQueue.length + ' items';
+  document.getElementById('recvBtnCount').innerText = recvQueue.length;
   btn.disabled = recvQueue.length === 0;
 }
 
@@ -1193,7 +530,8 @@ function updateRecvBtn() {
 function handleSendInput(el) {
   const val = el.value;
   if (val.includes('\n')) {
-    val.split('\n').forEach(p => { if (p.trim()) addChip(p, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here'); });
+    const parts = val.split('\n');
+    parts.forEach(p => { if (p.trim()) addChip(p, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here'); });
     el.value = "";
   }
 }
@@ -1207,38 +545,39 @@ function sendKey(e) {
 function sendPaste(e) {
   setTimeout(() => {
     const val = e.target.value;
-    val.split(/[\n,]+/).forEach(p => { if (p.trim()) addChip(p, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here'); });
+    const parts = val.split(/[\n,]+/);
+    parts.forEach(p => { if (p.trim()) addChip(p, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here'); });
     e.target.value = "";
   }, 10);
 }
 
 async function sendShipments() {
   const dest = document.getElementById('destBranch').value;
-  const van  = document.getElementById('sendVanNo').value.trim();
-  if (!dest)              return toast('Select destination', 'bad');
-  if (!van)               return toast('Enter van number', 'bad');
+  const van = document.getElementById('sendVanNo').value.trim();
+  if (!dest) return toast('Select destination', 'bad');
+  if (!van) return toast('Enter van number', 'bad');
   if (sendQueue.length === 0) return toast('Scan at least one ID', 'bad');
   toast('Sending ' + sendQueue.length + ' shipments...', 'ok');
   try {
     const res = await apiPost({
       action: "sendBatch",
       origin: currentRole === 'driver' ? 'DRIVER' : currentBranch,
-      destination: dest, vanNo: van,
+      destination: dest,
+      vanNo: van,
       shipments: sendQueue.map(id => ({ shipmentId: id }))
     });
     if (res.success) {
       let msg = res.sent + ' sent';
-      if (res.routeLabel) msg += ' · ' + res.routeLabel;
+      let bad = 0;
       if (res.results) {
         const dupes = res.results.filter(r => r.status === 'duplicate');
         if (dupes.length) msg += ' | ' + dupes.length + ' already in transit';
+        bad = res.results.filter(r => r.status === 'failed').length;
       }
-      toast(msg, 'ok');
+      toast(msg, bad ? 'warn' : 'ok');
       sendQueue = [];
       renderChips('sendChipList', [], 'Scan or paste shipment IDs here');
-      document.getElementById('sendCount').textContent = '0';
-      // Immediately refresh van strip after sending
-      setTimeout(loadAllVans, 1500);
+      document.getElementById('sendCount').innerText = '0';
     } else {
       toast(res.error, 'bad');
     }
@@ -1250,7 +589,8 @@ async function sendShipments() {
 function handleRecvInput(el) {
   const val = el.value;
   if (val.includes('\n')) {
-    val.split('\n').forEach(p => { if (p.trim()) pushRecv(p); });
+    const parts = val.split('\n');
+    parts.forEach(p => { if (p.trim()) pushRecv(p); });
     el.value = "";
   }
   scheduleRecvFlush();
@@ -1266,7 +606,8 @@ function recvKey(e) {
 function recvPaste(e) {
   setTimeout(() => {
     const val = e.target.value;
-    val.split(/[\n,]+/).forEach(p => { if (p.trim()) pushRecv(p); });
+    const parts = val.split(/[\n,]+/);
+    parts.forEach(p => { if (p.trim()) pushRecv(p); });
     e.target.value = "";
     scheduleRecvFlush();
   }, 10);
@@ -1283,14 +624,16 @@ function pushRecv(raw) {
 
 function scheduleRecvFlush() {
   clearTimeout(recvTimer);
-  recvTimer = setTimeout(() => { if (recvQueue.length > 0) submitBatch(); }, RECV_AUTO_DELAY);
+  recvTimer = setTimeout(() => {
+    if (recvQueue.length > 0) submitBatch();
+  }, RECV_AUTO_DELAY);
 }
 
 async function submitBatch() {
   clearTimeout(recvTimer);
-  const van    = document.getElementById('recvVanNo').value.trim();
+  const van = document.getElementById('recvVanNo').value.trim();
   const branch = getActiveBranch();
-  if (!van)    return toast('Enter van number', 'bad');
+  if (!van) return toast('Enter van number', 'bad');
   if (!branch) return toast('Select a branch first', 'bad');
   if (recvQueue.length === 0) return;
   toast('Receiving ' + recvQueue.length + ' shipments...', 'ok');
@@ -1305,23 +648,22 @@ async function submitBatch() {
       updateRecvBtn();
       fetchPending();
       loadIncomingVans();
-      setTimeout(loadAllVans, 1500);
     } else {
-      toast(res.error, 'bad');
+      toast(res.error || 'Receive failed', 'bad');
     }
-  } catch(e) { toast('Network error', 'bad'); }
+  } catch(e) { toast('Network error: ' + e.message, 'bad'); }
 }
 
 async function fetchPending() {
-  const van    = document.getElementById('recvVanNo').value.trim();
+  const van = document.getElementById('recvVanNo').value.trim();
   const branch = getActiveBranch();
-  if (!van)    return toast('Enter van number first', 'bad');
+  if (!van) return toast('Enter van number first', 'bad');
   if (!branch) return toast('Select a branch first', 'bad');
   try {
-    const res   = await apiGet({ action: "getPendingByVan", branch: branch, vanNo: van });
+    const res = await apiGet({ action: "getPendingByVan", branch: branch, vanNo: van });
     const items = res.data || [];
     document.getElementById('pendingSection').classList.remove('hidden');
-    document.getElementById('pendingCount').textContent = items.length;
+    document.getElementById('pendingCount').innerText = items.length;
     const list = document.getElementById('shipmentList');
     if (items.length === 0) {
       list.innerHTML = '<div style="padding:14px;text-align:center;color:#94a3b8;font-size:13px">No pending shipments</div>';
@@ -1334,14 +676,17 @@ async function fetchPending() {
 }
 
 async function receiveAllSheet() {
-  const van    = document.getElementById('recvVanNo').value.trim();
+  const van = document.getElementById('recvVanNo').value.trim();
   const branch = getActiveBranch();
-  if (!van)    return toast('Enter van number', 'bad');
+  if (!van) return toast('Enter van number', 'bad');
   if (!branch) return toast('Select a branch first', 'bad');
   try {
     const res = await apiPost({ action: "receiveAll", branch: branch, vanNo: van });
     toast(res.message, res.success ? 'ok' : 'bad');
-    if (res.success) { fetchPending(); loadIncomingVans(); setTimeout(loadAllVans, 1500); }
+    if (res.success) {
+      fetchPending();
+      loadIncomingVans();
+    }
   } catch(e) { toast('Error', 'bad'); }
 }
 
@@ -1362,7 +707,7 @@ async function openCamera(mode) {
   scanMode = mode;
   if (mode === 'receive') {
     const van = document.getElementById('recvVanNo').value.trim();
-    if (!van)               return toast('Enter Van Number first', 'bad');
+    if (!van) return toast('Enter Van Number first', 'bad');
     if (!getActiveBranch()) return toast('Select branch first', 'bad');
   }
   await initDetector();
@@ -1393,23 +738,34 @@ let lastScanTime = 0;
 async function tick() {
   if (!isScanning) return;
   const video = document.getElementById('camVideo');
-  if (video.readyState !== video.HAVE_ENOUGH_DATA) { requestAnimationFrame(tick); return; }
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+    requestAnimationFrame(tick);
+    return;
+  }
   const now = Date.now();
-  if (now - lastScanTime < 350) { requestAnimationFrame(tick); return; }
+  if (now - lastScanTime < 350) {
+    requestAnimationFrame(tick);
+    return;
+  }
   const canvas = document.getElementById('camCanvas');
-  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   let code = null;
   if (barcodeDetector) {
-    try { const codes = await barcodeDetector.detect(canvas); if (codes.length) code = codes[0].rawValue; }
-    catch(e) {}
+    try {
+      const codes = await barcodeDetector.detect(canvas);
+      if (codes.length) code = codes[0].rawValue;
+    } catch(e) {}
   }
   if (code) {
     lastScanTime = now;
     const clean = cleanId(code);
     if (scanMode === 'send') {
-      if (addChip(clean, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here')) toast('Scanned: ' + clean, 'ok');
+      if (addChip(clean, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here')) {
+        toast('Scanned: ' + clean, 'ok');
+      }
     } else {
       if (!recvQueue.includes(clean)) {
         recvQueue.push(clean);
@@ -1423,23 +779,15 @@ async function tick() {
   requestAnimationFrame(tick);
 }
 
-/* ===================== HELPERS ===================== */
-
-function fmt(min, sec) {
-  return String(min).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
-}
-
 function toast(msg, type) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  t.innerText = msg;
   t.className = 'toast ' + type;
   t.style.display = 'block';
   clearTimeout(t._tm);
   t._tm = setTimeout(() => t.style.display = 'none', 3000);
 }
 
-updateLiveClock();
-setInterval(updateLiveClock, 1000);
 init();
 </script>
 </body>
