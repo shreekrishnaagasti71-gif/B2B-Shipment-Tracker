@@ -1,27 +1,22 @@
 // ═══════════════════════════════════════════════════════
-//  NCM B2B TRACKER — BACKEND v4 (lean + fast)
-//  Changes in this version:
-//   • Kept the real checkout-reset fix from v3.1: the VAN MOVEMENTS
-//     "Date" column was getting silently auto-converted by Sheets from a
-//     "yyyy-MM-dd" string into a real Date object, so a row check-in had
-//     JUST written could no longer be found as "today's row" on the very
-//     next read — normalizeDateStr() + forcing the column to plain text
-//     fixes this everywhere dates are compared.
-//   • Removed the entire legacy shipment-scan / VAN STATUS / VAN VISITS
-//     system (SHIPMENT GPS sheet, send/receive batch, incoming-vans-by-
-//     branch, old round counter). None of it is used by the current
-//     driver check-in/check-out screens — it was dead weight being
-//     written to on every single check-in and check-out for no reason.
-//   • Rewrote routeDashboard() to read VAN MOVEMENTS ONCE and group by
-//     van in memory, instead of re-reading the whole sheet once PER VAN.
-//     With 100+ staff and a growing sheet, that was the main thing that
-//     would have gotten slower every single day.
+//  NCM B2B TRACKER — BACKEND v3.1 (checkout bug fix)
+//  Fix in this version:
+//   • VAN MOVEMENTS "Date" column was getting silently auto-converted by
+//     Sheets from a "yyyy-MM-dd" string into a real Date object. Every
+//     lookup compared it as a string, so the row check-in had JUST written
+//     could no longer be found on the very next read — which is what made
+//     getRouteState() report "not started" right after a successful check
+//     in, and made Check Out fail with "Check in at TINKUNE first".
+//   • Added normalizeDateStr() and used it everywhere VAN MOVEMENTS rows
+//     are matched by date, and forced that column to plain text going
+//     forward so new rows don't get reconverted.
 //  Open from: Extensions → Apps Script inside your sheet
 //  After pasting: Deploy → Manage deployments → Edit → New version → Deploy
 // ═══════════════════════════════════════════════════════
 
 const CONFIG = {
-  TIMEZONE: "Asia/Kathmandu"
+  SHEET_NAME: "SHIPMENT GPS",
+  TIMEZONE:   "Asia/Kathmandu"
 };
 
 const PASSCODES = {
@@ -34,7 +29,8 @@ const PASSCODES = {
   "6666": { branch: "KALANKI",      role: "branch" },
   "7777": { branch: "SATDOBATO",    role: "branch" },
   "9999": { role: "admin" },
-  // Driver passcodes are intentionally the same as the van number.
+  // Driver passcodes are intentionally the same as the van number for the
+  // four vans supplied by the operator.
   "van 1404": { role: "driver", vanNo: "1404" },
   "van 843":  { role: "driver", vanNo: "843" },
   "van 2266": { role: "driver", vanNo: "2266" },
@@ -51,16 +47,68 @@ const ROUTE_LABELS = {
   "ROUTE 2": "Tinkune → Satdobato → Kalanki → Swoyambhu → Naya Buspark → Basundhara → Chabahil → Tinkune"
 };
 
+// Kept for the legacy shipment round label functions below.
+const ROUND_BRANCHES = ["TINKUNE", "SATDOBATO", "KALANKI", "NAYA BUSPARK", "CHABAHIL"];
+
+const DESTINATIONS = {
+  "TINKUNE":      ["NAYA THIMI","SURYABINAYAK","LUBHU","CHABAHIL","NAYA BUSPARK","KALANKI","SATDOBATO","NEWROAD"],
+  "CHABAHIL":     ["KAPAN","BUDHANILKANTHA","SANKHU","SUNDARIJAL","NAYA BUSPARK","KALANKI","SATDOBATO","TINKUNE","NEWROAD"],
+  "NAYA BUSPARK": ["NEWROAD","KALANKI","SATDOBATO","TINKUNE","CHABAHIL"],
+  "KALANKI":      ["THANKOT","SATDOBATO","TINKUNE","CHABAHIL","NAYA BUSPARK","NEWROAD"],
+  "SATDOBATO":    ["TINKUNE","CHABAHIL","NAYA BUSPARK","KALANKI","NEWROAD","CHAPAGAU","GODAWARI"],
+  "NEWROAD":      ["CHABAHIL","NAYA BUSPARK","KALANKI","SATDOBATO","TINKUNE"]
+};
+
+const SUB_BRANCHES = {
+  "KAPAN":"CHABAHIL","BUDHANILKANTHA":"CHABAHIL","SANKHU":"CHABAHIL","SUNDARIJAL":"CHABAHIL",
+  "NAYA THIMI":"TINKUNE","SURYABINAYAK":"TINKUNE","LUBHU":"TINKUNE",
+  "GODAWARI":"SATDOBATO","CHAPAGAU":"SATDOBATO",
+  "SWOYAMBHU":"NAYA BUSPARK","BASUNDHARA":"NAYA BUSPARK",
+  "THANKOT":"KALANKI"
+};
+
 const MAX_ROUNDS_PER_DAY = 3;
 const EXPECTED_LEG_MINUTES = 10;
 const MIN_TRAVEL_SECONDS = 120;
 
+const COL = { DATE:1, ORIGIN:2, DEST:3, SEND_TIME:4, ID:5, VAN:6, STATUS:7, RECV_BY:8, RECV_TIME:9 };
+
 /* ─── Helpers ────────────────────────────────────────── */
+
+function resolveMainBranch(name) {
+  if (!name) return name;
+  var upper = name.toString().toUpperCase().trim();
+  return SUB_BRANCHES[upper] || upper;
+}
+
+function getSheet() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(CONFIG.SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(CONFIG.SHEET_NAME);
+    sheet.appendRow(["Date","Origin","Destination","Send Time","Shipment ID","Van No","Status","Received By","Received Time"]);
+    sheet.setFrozenRows(1);
+    sheet.getRange(2, COL.VAN, sheet.getMaxRows() - 1, 1).setNumberFormat('@');
+  }
+  return sheet;
+}
+
+function ensureRows(sheet, minRows) {
+  if (sheet.getMaxRows() < minRows)
+    sheet.insertRowsAfter(sheet.getMaxRows(), minRows - sheet.getMaxRows() + 5);
+}
 
 function today() {
   return Utilities.formatDate(new Date(), CONFIG.TIMEZONE, "yyyy-MM-dd");
 }
 
+// FIX: Sheets silently converts a written value that looks like a date
+// (e.g. "2026-08-31") into a real Date object unless the column is forced
+// to plain text. Every date comparison in this file expects a
+// "yyyy-MM-dd" string, so this normalizes whichever type actually ended
+// up in the cell before comparing. Without this, a row written by
+// Check In could become unreadable as "today's row" on the very next
+// lookup — which is what made Check Out fail right after Check In.
 function normalizeDateStr(value) {
   if (value instanceof Date) {
     return Utilities.formatDate(value, CONFIG.TIMEZONE, "yyyy-MM-dd");
@@ -70,22 +118,10 @@ function normalizeDateStr(value) {
   return match ? match[1] : str;
 }
 
-function secondsBetween(a, b) {
-  var first = a instanceof Date ? a : new Date(a);
-  var second = b instanceof Date ? b : new Date(b);
-  if (isNaN(first.getTime()) || isNaN(second.getTime())) return 0;
-  return Math.max(0, Math.floor((second.getTime() - first.getTime()) / 1000));
-}
-
-function holdTimeLabel(seconds) {
-  var total = Math.max(0, Math.floor(Number(seconds) || 0));
-  var hours = Math.floor(total / 3600);
-  var minutes = Math.floor((total % 3600) / 60);
-  if (hours) return hours + " hr" + (minutes ? " " + minutes + " min" : "");
-  return minutes + " min";
-}
-
-/* ─── VAN MOVEMENTS sheet ─── single source of truth ─── */
+/* ─── ROUTE MOVEMENT TRACKING ──────────────────────────
+   One row represents one station visit. Shipment scanning is optional; the
+   route board is driven only by driver check-in/check-out events.
+*/
 
 const MOVE_COL = {
   DATE:1, VAN:2, ROUTE:3, ROUND:4, STOP:5, STATION:6,
@@ -108,8 +144,12 @@ function getMovementSheet() {
     sheet.getRange(2, MOVE_COL.ARRIVAL, sheet.getMaxRows() - 1, 2).setNumberFormat("yyyy-mm-dd hh:mm:ss");
     sheet.getRange(2, MOVE_COL.UPDATED, sheet.getMaxRows() - 1, 1).setNumberFormat("yyyy-mm-dd hh:mm:ss");
   } else if (sheet.getLastColumn() < MOVE_COL.HOLD_TIME) {
+    // Keep existing movement sheets compatible while adding a readable hold value.
     sheet.getRange(1, MOVE_COL.HOLD_TIME).setValue("Hold Time");
   }
+  // FIX: force the Date column to plain text so it stops getting silently
+  // auto-converted to a Date object on every future write. Runs every call
+  // (cheap, idempotent) so it also repairs sheets created before this fix.
   sheet.getRange(2, MOVE_COL.DATE, Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('@');
   return sheet;
 }
@@ -153,6 +193,21 @@ function registerVan(vanNo) {
   var now = new Date();
   sheet.appendRow([target, "van " + target, Utilities.formatDate(now, CONFIG.TIMEZONE, "yyyy-MM-dd"), now, "ACTIVE"]);
   return { success:true, vanNo:target, existing:false };
+}
+
+function touchVanRegistry(vanNo, status) {
+  var target = String(vanNo || "").trim().toUpperCase();
+  if (!target) return;
+  var sheet = getVanRegistrySheet();
+  var values = sheet.getDataRange().getValues();
+  var now = new Date();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]).trim().toUpperCase() === target) {
+      sheet.getRange(i + 1, 4, 1, 2).setValues([[now, status || "ACTIVE"]]);
+      return;
+    }
+  }
+  sheet.appendRow([target, "van " + target, Utilities.formatDate(now, CONFIG.TIMEZONE, "yyyy-MM-dd"), now, status || "ACTIVE"]);
 }
 
 function getRouteConfigSheet() {
@@ -214,6 +269,21 @@ function createRoute(data) {
   return { success:true, message:name + " created", route:name, stations:stops };
 }
 
+function secondsBetween(a, b) {
+  var first = a instanceof Date ? a : new Date(a);
+  var second = b instanceof Date ? b : new Date(b);
+  if (isNaN(first.getTime()) || isNaN(second.getTime())) return 0;
+  return Math.max(0, Math.floor((second.getTime() - first.getTime()) / 1000));
+}
+
+function holdTimeLabel(seconds) {
+  var total = Math.max(0, Math.floor(Number(seconds) || 0));
+  var hours = Math.floor(total / 3600);
+  var minutes = Math.floor((total % 3600) / 60);
+  if (hours) return hours + " hr" + (minutes ? " " + minutes + " min" : "");
+  return minutes + " min";
+}
+
 function movementRowsForToday(vanNo) {
   var values = getMovementSheet().getDataRange().getValues();
   var target = String(vanNo || "").trim();
@@ -228,16 +298,16 @@ function movementRowsForToday(vanNo) {
   return rows;
 }
 
-// Shared by the single-van path (getRouteState) and the dashboard path
-// (routeDashboard), so both agree on exactly the same logic.
-function stateFromRow(vanNo, item) {
-  if (!item) {
+function getRouteState(vanNo) {
+  var rows = movementRowsForToday(vanNo);
+  if (!rows.length) {
     return {
       vanNo: String(vanNo || "").trim(), started: false, route: null,
       round: 0, stopIndex: -1, station: null, nextStation: null,
       status: "NOT_STARTED"
     };
   }
+  var item = rows[rows.length - 1];
   var v = item.values;
   if (String(v[MOVE_COL.STATUS - 1]) === "ADMIN_RESET") {
     return {
@@ -269,11 +339,6 @@ function stateFromRow(vanNo, item) {
   return state;
 }
 
-function getRouteState(vanNo) {
-  var rows = movementRowsForToday(vanNo);
-  return stateFromRow(vanNo, rows.length ? rows[rows.length - 1] : null);
-}
-
 function routeStateResponse(state) {
   var now = new Date();
   var elapsed = 0;
@@ -297,35 +362,27 @@ function routeStateResponse(state) {
   };
 }
 
-// FAST PATH: reads VAN MOVEMENTS and VAN REGISTRY ONCE, groups movement
-// rows by van in memory, then builds every van's state from that —
-// instead of re-reading the whole movement sheet once PER VAN (which
-// would have gotten slower every single day as the sheet grew).
-function routeDashboard() {
-  var dateStr = today();
-  var moveValues = getMovementSheet().getDataRange().getValues();
-  var latestTodayByVan = {};
-  var allVans = {};
-
+function knownVans() {
+  var found = {};
   Object.keys(PASSCODES).forEach(function(pc) {
-    if (PASSCODES[pc].role === "driver") allVans[PASSCODES[pc].vanNo] = true;
+    if (PASSCODES[pc].role === "driver") found[PASSCODES[pc].vanNo] = true;
   });
   var registryValues = getVanRegistrySheet().getDataRange().getValues();
   for (var r = 1; r < registryValues.length; r++) {
     var registeredVan = String(registryValues[r][0] || "").trim();
-    if (registeredVan) allVans[registeredVan] = true;
+    if (registeredVan) found[registeredVan] = true;
   }
-
-  for (var i = 1; i < moveValues.length; i++) {
-    var van = String(moveValues[i][MOVE_COL.VAN - 1] || "").trim();
-    if (!van) continue;
-    allVans[van] = true;
-    if (normalizeDateStr(moveValues[i][MOVE_COL.DATE - 1]) !== dateStr) continue;
-    latestTodayByVan[van] = { rowIndex: i + 1, values: moveValues[i] };
+  var values = getMovementSheet().getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    var van = String(values[i][MOVE_COL.VAN - 1] || "").trim();
+    if (van) found[van] = true;
   }
+  return Object.keys(found);
+}
 
-  return Object.keys(allVans).map(function(vanNo) {
-    var state = stateFromRow(vanNo, latestTodayByVan[vanNo]);
+function routeDashboard() {
+  return knownVans().map(function(vanNo) {
+    var state = getRouteState(vanNo);
     var item = routeStateResponse(state);
     if (!state.started) {
       item.status = "idle";
@@ -373,6 +430,8 @@ function handleRouteCheckIn(data) {
     if (!state.started) {
       if (station !== route[0]) return { success:false, error:"First check-in must be at " + route[0] };
       sheet.appendRow([today(), vanNo, routeName, 1, 0, station, now, "", 0, 0, route[1], "AT_STATION", now]);
+      updateVanStatus(vanNo, "AT_STATION", station, route[1], "", 0);
+      touchVanRegistry(vanNo, "AT_STATION");
       return { success:true, message:"Checked in at " + station, state:routeStateResponse(getRouteState(vanNo)) };
     }
 
@@ -408,6 +467,8 @@ function handleRouteCheckIn(data) {
       today(), vanNo, state.route, nextRound, nextIndex, station, now, "",
       0, secondsBetween(state.departureTime, now), nextStation, currentStatus, now
     ]);
+    updateVanStatus(vanNo, finalStop ? "OFF_DUTY" : "AT_STATION", station, nextStation, "", nextRound);
+    touchVanRegistry(vanNo, finalStop ? "OFF_DUTY" : "AT_STATION");
     return {
       success:true,
       message: finalStop ? "Arrived at " + station + " — 3 rounds complete" : "Checked in at " + station,
@@ -439,6 +500,8 @@ function handleRouteCheckOut(data) {
     values[MOVE_COL.STATUS - 1] = "MOVING";
     sheet.getRange(state.rowIndex, 1, 1, values.length).setValues([values]);
     sheet.getRange(state.rowIndex, MOVE_COL.HOLD_TIME).setValue(holdTimeLabel(holdSeconds));
+    updateVanStatus(vanNo, "MOVING", state.station, state.nextStation, now, state.round);
+    touchVanRegistry(vanNo, "MOVING");
     return { success:true, message:"Checked out — heading to " + state.nextStation, state:routeStateResponse(getRouteState(vanNo)) };
   } finally {
     lock.releaseLock();
@@ -509,7 +572,299 @@ function adminResetVan(vanNo) {
   values[MOVE_COL.STATUS - 1] = "ADMIN_RESET";
   values[MOVE_COL.UPDATED - 1] = new Date();
   sheet.getRange(state.rowIndex, 1, 1, values.length).setValues([values]);
+  updateVanStatus(String(vanNo).trim(), "IDLE", state.station, "", "", state.round);
+  touchVanRegistry(vanNo, "RESET");
   return { success:true, message:"Van " + vanNo + " reset for a new route" };
+}
+
+/* ─── VAN STATUS sheet ──────────────────────────────── */
+// Columns: Van No | Status | From Branch | To Branch | Depart Time | Round Count | Last Activity Time
+
+function getVanStatusSheet() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("VAN STATUS");
+  if (!sheet) {
+    sheet = ss.insertSheet("VAN STATUS");
+    sheet.appendRow(["Van No","Status","From Branch","To Branch","Depart Time","Round Count","Last Activity Time"]);
+    sheet.setFrozenRows(1);
+  }
+  sheet.getRange(1, 7).setValue("Last Activity Time");
+  return sheet;
+}
+
+function getVanStatusRow(vanNo) {
+  var sheet  = getVanStatusSheet();
+  var values = sheet.getDataRange().getValues();
+  var target = String(vanNo).trim();
+  var todayStr = today();
+
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]).trim() === target) {
+      var lastDate   = values[i][6];
+      var roundCount = Number(values[i][5]) || 0;
+      // Reset round count at start of new day
+      var lastDateStr = normalizeDateStr(lastDate);
+      if (lastDate && lastDateStr !== todayStr) {
+        roundCount = 0;
+        sheet.getRange(i + 1, 6).setValue(0);
+      }
+      return {
+        rowIndex:   i,
+        status:     values[i][1],
+        fromBranch: values[i][2],
+        toBranch:   values[i][3],
+        departTime: values[i][4],
+        roundCount: roundCount
+      };
+    }
+  }
+  return { rowIndex: -1, status: null, fromBranch: null, toBranch: null, departTime: null, roundCount: 0 };
+}
+
+function updateVanStatus(vanNo, status, fromBranch, toBranch, departTime, roundCount) {
+  var sheet    = getVanStatusSheet();
+  var values   = sheet.getDataRange().getValues();
+  var target   = String(vanNo).trim();
+  var todayStr = today();
+  var activityTime = new Date();
+
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]).trim() === target) {
+      var existingRound = (roundCount !== undefined) ? roundCount : (Number(values[i][5]) || 0);
+      sheet.getRange(i + 1, 2, 1, 6).setValues([[status, fromBranch, toBranch, departTime, existingRound, activityTime]]);
+      return;
+    }
+  }
+  sheet.appendRow([target, status, fromBranch, toBranch, departTime, roundCount || 0, activityTime]);
+}
+
+/* ─── VAN VISITS sheet — dynamic round tracking ─────────
+   Columns: Van No | Date | Visited Branches (comma-separated) | Round Count
+   Every time a van departs from a branch, we add it to the visited list.
+   When the list contains all ROUND_BRANCHES, we close the round:
+     increment Round Count, clear Visited Branches list.
+   This works for ANY van number with no pre-registration needed.
+*/
+
+function getVanVisitsSheet() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("VAN VISITS");
+  if (!sheet) {
+    sheet = ss.insertSheet("VAN VISITS");
+    sheet.appendRow(["Van No","Date","Visited Branches","Round Count"]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+// Records that vanNo departed from branch, checks if a round is now complete.
+// Returns the current round count for the van (after any increment).
+function trackBranchVisit(vanNo, branch) {
+  var mainBranch = resolveMainBranch(branch);
+  // Only count visits to main ROUND_BRANCHES
+  if (ROUND_BRANCHES.indexOf(mainBranch) === -1) return getRoundCount(vanNo);
+
+  var sheet    = getVanVisitsSheet();
+  var values   = sheet.getDataRange().getValues();
+  var target   = String(vanNo).trim();
+  var todayStr = today();
+
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]).trim() === target && normalizeDateStr(values[i][1]) === todayStr) {
+      // Found today's row for this van
+      var visited    = values[i][2] ? String(values[i][2]).split(",") : [];
+      var roundCount = Number(values[i][3]) || 0;
+
+      // Add this branch if not already visited this leg
+      if (visited.indexOf(mainBranch) === -1) visited.push(mainBranch);
+
+      // Check if all ROUND_BRANCHES have been visited → round complete
+      var roundComplete = ROUND_BRANCHES.every(function(b) { return visited.indexOf(b) !== -1; });
+      if (roundComplete) {
+        roundCount++;
+        visited = []; // reset for next round
+      }
+
+      sheet.getRange(i + 1, 3, 1, 2).setValues([[visited.join(","), roundCount]]);
+      return roundCount;
+    }
+  }
+
+  // No row yet for today — create it
+  var newVisited = [mainBranch];
+  var newRoundCount = 0;
+  sheet.appendRow([target, todayStr, newVisited.join(","), newRoundCount]);
+  return newRoundCount;
+}
+
+// Returns round count for a van today (0 if not started yet).
+function getRoundCount(vanNo) {
+  var sheet    = getVanVisitsSheet();
+  var values   = sheet.getDataRange().getValues();
+  var target   = String(vanNo).trim();
+  var todayStr = today();
+
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]).trim() === target && normalizeDateStr(values[i][1]) === todayStr) {
+      return Number(values[i][3]) || 0;
+    }
+  }
+  return 0;
+}
+
+// How many distinct ROUND_BRANCHES has this van visited today (for label).
+function getVisitedBranches(vanNo) {
+  var sheet    = getVanVisitsSheet();
+  var values   = sheet.getDataRange().getValues();
+  var target   = String(vanNo).trim();
+  var todayStr = today();
+
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]).trim() === target && normalizeDateStr(values[i][1]) === todayStr) {
+      var visited = values[i][2] ? String(values[i][2]).split(",").filter(Boolean) : [];
+      return visited;
+    }
+  }
+  return [];
+}
+
+// Builds a human-readable round label, e.g. "2/3 · 4 stops"
+function buildRoundLabel(vanNo) {
+  var roundCount = getRoundCount(vanNo);
+  var visited    = getVisitedBranches(vanNo);
+  if (roundCount === 0 && visited.length === 0) return null;
+  var label = "Round " + (roundCount + 1) + "/" + MAX_ROUNDS_PER_DAY;
+  if (visited.length > 0) label += " · " + visited.length + "/" + ROUND_BRANCHES.length + " stops";
+  return label;
+}
+
+/* ─── Pending count helper ─────────────────────────── */
+
+function countPendingForBranchOnVan(branch, vanNo) {
+  var sheet  = getSheet();
+  var values = sheet.getDataRange().getValues();
+  var count  = 0;
+  var target = String(vanNo).trim();
+  for (var i = 1; i < values.length; i++) {
+    var dest   = values[i][COL.DEST - 1];
+    var van    = String(values[i][COL.VAN - 1] || "").trim();
+    var status = values[i][COL.STATUS - 1];
+    if (resolveMainBranch(dest) === branch && van === target && status === "In Transit") count++;
+  }
+  return count;
+}
+
+/* ─── getIncomingVans (Receive tab) ─────────────────── */
+
+function getIncomingVans(branch) {
+  var sheet  = getVanStatusSheet();
+  var values = sheet.getDataRange().getValues();
+  var now    = new Date();
+  var result = [];
+
+  for (var i = 1; i < values.length; i++) {
+    if (values[i][1] === "MOVING" && values[i][3] === branch) {
+      var vanNo      = String(values[i][0]).trim();
+      var fromBranch = values[i][2];
+      var departCell = values[i][4];
+      var departDate = (departCell instanceof Date) ? departCell : new Date(departCell);
+      var elapsedMs  = Math.max(0, now.getTime() - departDate.getTime());
+      var elapsedMin = Math.floor(elapsedMs / 60000);
+      var elapsedSec = Math.floor((elapsedMs % 60000) / 1000);
+      var count      = countPendingForBranchOnVan(branch, vanNo);
+
+      if (count > 0) {
+        var entry = {
+          vanNo:          vanNo,
+          origin:         fromBranch,
+          elapsedMinutes: elapsedMin,
+          elapsedSeconds: elapsedSec,
+          count:          count,
+          isLate:         elapsedMin >= EXPECTED_LEG_MINUTES
+        };
+        var rl = buildRoundLabel(vanNo);
+        if (rl) entry.roundLabel = rl;
+        result.push(entry);
+      }
+    }
+  }
+  return result;
+}
+
+/* ─── getAllVanMovements (company-wide, used by frontend getAllVans) ─ */
+
+function getAllVanMovements() {
+  var sheet  = getVanStatusSheet();
+  var values = sheet.getDataRange().getValues();
+  var now    = new Date();
+  var result = [];
+
+  for (var i = 1; i < values.length; i++) {
+    var vanNo  = String(values[i][0]).trim();
+    if (!vanNo) continue;
+    var status     = values[i][1];
+    var fromBranch = values[i][2];
+    var toBranch   = values[i][3];
+
+    if (status === "MOVING") {
+      var departCell = values[i][4];
+      var departDate = (departCell instanceof Date) ? departCell : new Date(departCell);
+      var elapsedMs  = Math.max(0, now.getTime() - departDate.getTime());
+      var elapsedMin = Math.floor(elapsedMs / 60000);
+      var elapsedSec = Math.floor((elapsedMs % 60000) / 1000);
+
+      var entry = {
+        vanNo:          vanNo,
+        status:         "moving",
+        fromBranch:     fromBranch,
+        toBranch:       toBranch,
+        elapsedMinutes: elapsedMin,
+        elapsedSeconds: elapsedSec,
+        isLate:         elapsedMin >= EXPECTED_LEG_MINUTES
+      };
+      var rl = buildRoundLabel(vanNo);
+      if (rl) entry.roundLabel = rl;
+      result.push(entry);
+
+    } else if (status === "IDLE" || status === "OFF_DUTY") {
+      var idleEntry = {
+        vanNo:        vanNo,
+        status:       status === "OFF_DUTY" ? "off_duty" : "idle",
+        lastLocation: fromBranch
+      };
+      var rCount = getRoundCount(vanNo);
+      if (rCount > 0) idleEntry.roundLabel = rCount + "/" + MAX_ROUNDS_PER_DAY + " rounds today";
+      result.push(idleEntry);
+    }
+  }
+
+  result.sort(function(a, b) {
+    if (a.status === "moving" && b.status !== "moving") return -1;
+    if (a.status !== "moving" && b.status === "moving") return  1;
+    return 0;
+  });
+
+  return result;
+}
+
+// Alias for backward compat — same data, different field name convention
+function getAllVanStatus() {
+  var raw = getAllVanMovements();
+  return raw.map(function(v) {
+    if (v.status === "moving") {
+      return {
+        vanNo:          v.vanNo,
+        status:         "MOVING",
+        origin:         v.fromBranch,
+        destination:    v.toBranch,
+        elapsedMinutes: v.elapsedMinutes,
+        elapsedSeconds: v.elapsedSeconds,
+        isLate:         v.isLate,
+        roundLabel:     v.roundLabel || null
+      };
+    }
+    return { vanNo: v.vanNo, status: v.status.toUpperCase(), parkedAt: v.lastLocation, roundLabel: v.roundLabel || null };
+  });
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -532,9 +887,13 @@ function doGet(e) {
       }
     }
     if (!cfg) return jsonResponse({ success: false, error: "Invalid passcode" });
+    if (cfg.role === "driver") touchVanRegistry(cfg.vanNo, "ACTIVE");
     var res = { success: true, role: cfg.role, routes: getRouteLabels() };
-    if (cfg.role === "branch")  { res.branch = cfg.branch; }
-    if (cfg.role === "driver")  { res.vanNo = cfg.vanNo; }
+    if (cfg.role === "branch")  { res.branch = cfg.branch; res.destinations = DESTINATIONS[cfg.branch] || []; }
+    if (cfg.role === "driver")  {
+      res.vanNo = cfg.vanNo;
+      res.routes = getRouteLabels();
+    }
     return jsonResponse(res);
   }
 
@@ -558,6 +917,19 @@ function doGet(e) {
     return jsonResponse({ success:true, data:getIssues(false) });
   }
 
+  if (action === "getPendingByVan") {
+    return jsonResponse({ success: true, data: getPendingByVan(e.parameter.branch, e.parameter.vanNo) });
+  }
+
+  if (action === "getIncomingVans") {
+    return jsonResponse({ success: true, data: getIncomingVans(e.parameter.branch) });
+  }
+
+  // Both action names supported — getAllVans is used by the frontend
+  if (action === "getAllVanStatus") {
+    return jsonResponse({ success: true, data: getAllVanMovements() });
+  }
+
   return jsonResponse({ success: false, error: "Unknown action" });
 }
 
@@ -574,12 +946,211 @@ function doPost(e) {
       case 'submitIssue':   return jsonResponse(submitIssue(body));
       case 'closeIssue':    return jsonResponse(closeIssue(body.row));
       case 'adminResetVan': return jsonResponse(adminResetVan(body.vanNo));
-      default:               return jsonResponse({ success: false, error: 'Unknown action' });
+      case 'sendBatch':    return jsonResponse(handleSendBatch(body));
+      case 'receiveBatch': return jsonResponse(handleReceiveBatch(body));
+      case 'receiveOne':   return jsonResponse(handleReceiveOne(body));
+      case 'receiveAll':   return jsonResponse(handleReceiveAll(body));
+      default:             return jsonResponse({ success: false, error: 'Unknown action' });
     }
   } catch (err) {
     return jsonResponse({ success:false, error:"Server error: " + (err.message || err.toString()) });
   }
 }
+
+/* ─── Send Batch ────────────────────────────────────── */
+
+function handleSendBatch(data) {
+  try {
+    var sheet    = getSheet();
+    var values   = sheet.getDataRange().getValues();
+    var now      = new Date();
+    var tz       = CONFIG.TIMEZONE;
+    var dateStr  = Utilities.formatDate(now, tz, "yyyy-MM-dd");
+    var timeStr  = Utilities.formatDate(now, tz, "HH:mm:ss");
+
+    var vanNo  = String(data.vanNo || "N/A").trim();
+    var origin = data.origin;
+    var dest   = data.destination;
+
+    // Track branch visit for round counting
+    var roundCount = trackBranchVisit(vanNo, origin);
+
+    var inTransitIds = {};
+    for (var i = 1; i < values.length; i++) {
+      var sid    = String(values[i][COL.ID - 1] || "").trim();
+      var status = values[i][COL.STATUS - 1];
+      if (sid && status === "In Transit") inTransitIds[sid] = values[i][COL.ORIGIN - 1];
+    }
+
+    var newRows = [], results = [];
+    var shipments = data.shipments || [];
+
+    for (var j = 0; j < shipments.length; j++) {
+      var item = shipments[j];
+      var sid2 = String(item.shipmentId || "").trim();
+      if (!sid2) continue;
+      if (inTransitIds[sid2]) {
+        results.push({ shipmentId: sid2, status: "duplicate", error: sid2 + " already In Transit from " + inTransitIds[sid2] });
+      } else {
+        newRows.push([dateStr, origin, dest, timeStr, sid2, vanNo, "In Transit", "", ""]);
+        results.push({ shipmentId: sid2, status: "sent" });
+        inTransitIds[sid2] = origin;
+      }
+    }
+
+    if (newRows.length > 0) {
+      var startRow = sheet.getLastRow() + 1;
+      ensureRows(sheet, startRow + newRows.length);
+      sheet.getRange(startRow, 1, newRows.length, newRows[0].length).setValues(newRows);
+      sheet.getRange(startRow, COL.VAN, newRows.length, 1).setNumberFormat('@');
+      updateVanStatus(vanNo, "MOVING", origin, dest, now, roundCount);
+    }
+
+    var rl = buildRoundLabel(vanNo);
+    var response = { success: true, sent: newRows.length, results: results, destination: dest };
+    if (rl) response.routeLabel = rl;
+    return response;
+
+  } catch (err) { return { success: false, error: err.toString() }; }
+}
+
+/* ─── Receive Batch ─────────────────────────────────── */
+
+function handleReceiveBatch(data) {
+  try {
+    var sheet    = getSheet();
+    var range    = sheet.getDataRange();
+    var values   = range.getValues();
+    var now      = new Date();
+    var timeStr  = Utilities.formatDate(now, CONFIG.TIMEZONE, "HH:mm:ss");
+
+    var targetIds = {};
+    (data.shipmentIds || []).forEach(function(id) { targetIds[String(id).trim()] = true; });
+
+    var targetVan    = String(data.vanNo).trim();
+    var branch       = data.branch;
+    var receivedCount= 0;
+    var foundIds     = {};
+    var notFoundIds  = [];
+
+    for (var i = 1; i < values.length; i++) {
+      var sid    = String(values[i][COL.ID - 1] || "").trim();
+      var dest   = values[i][COL.DEST - 1];
+      var van    = String(values[i][COL.VAN - 1] || "").trim();
+      var status = values[i][COL.STATUS - 1];
+
+      if (targetIds[sid] && resolveMainBranch(dest) === branch &&
+          van === targetVan && status === "In Transit" && !foundIds[sid]) {
+        values[i][COL.STATUS - 1]   = "Received";
+        values[i][COL.RECV_BY - 1]  = branch;
+        values[i][COL.RECV_TIME - 1]= timeStr;
+        receivedCount++;
+        foundIds[sid] = true;
+      }
+    }
+
+    range.setValues(values);
+
+    if (receivedCount > 0) {
+      updateVanStatus(targetVan, "IDLE", branch, "", "");
+    }
+
+    (data.shipmentIds || []).forEach(function(id) {
+      if (!foundIds[String(id).trim()]) notFoundIds.push(id);
+    });
+
+    return {
+      success:       true,
+      message:       receivedCount + " received" + (notFoundIds.length ? ", " + notFoundIds.length + " not found" : ""),
+      receivedCount: receivedCount,
+      notFoundIds:   notFoundIds
+    };
+  } catch (err) { return { success: false, error: err.toString() }; }
+}
+
+/* ─── Receive One ───────────────────────────────────── */
+
+function handleReceiveOne(data) {
+  try {
+    var sheet  = getSheet();
+    var range  = sheet.getDataRange();
+    var values = range.getValues();
+    var now    = new Date();
+    var timeStr= Utilities.formatDate(now, CONFIG.TIMEZONE, "HH:mm:ss");
+
+    for (var i = 1; i < values.length; i++) {
+      var sid    = String(values[i][COL.ID - 1] || "").trim();
+      var dest   = values[i][COL.DEST - 1];
+      var van    = String(values[i][COL.VAN - 1] || "").trim();
+      var status = values[i][COL.STATUS - 1];
+
+      if (sid === String(data.shipmentId || "").trim() &&
+          resolveMainBranch(dest) === data.branch &&
+          van === String(data.vanNo).trim() &&
+          status === "In Transit") {
+        values[i][COL.STATUS - 1]    = "Received";
+        values[i][COL.RECV_BY - 1]   = data.branch;
+        values[i][COL.RECV_TIME - 1] = timeStr;
+        range.setValues(values);
+        updateVanStatus(String(data.vanNo).trim(), "IDLE", data.branch, "", "");
+        return { success: true, message: data.shipmentId + " received" };
+      }
+    }
+    return { success: false, error: "Not found or already received" };
+  } catch (err) { return { success: false, error: err.toString() }; }
+}
+
+/* ─── Receive All ───────────────────────────────────── */
+
+function handleReceiveAll(data) {
+  try {
+    var sheet  = getSheet();
+    var range  = sheet.getDataRange();
+    var values = range.getValues();
+    var count  = 0;
+    var timeStr= Utilities.formatDate(new Date(), CONFIG.TIMEZONE, "HH:mm:ss");
+
+    for (var i = 1; i < values.length; i++) {
+      var dest   = values[i][COL.DEST - 1];
+      var van    = String(values[i][COL.VAN - 1] || "").trim();
+      var status = values[i][COL.STATUS - 1];
+
+      if (resolveMainBranch(dest) === data.branch &&
+          van === String(data.vanNo).trim() &&
+          status === "In Transit") {
+        values[i][COL.STATUS - 1]    = "Received";
+        values[i][COL.RECV_BY - 1]   = data.branch;
+        values[i][COL.RECV_TIME - 1] = timeStr;
+        count++;
+      }
+    }
+    range.setValues(values);
+    if (count > 0) updateVanStatus(String(data.vanNo).trim(), "IDLE", data.branch, "", "");
+    return { success: true, message: count + " shipment(s) received", count: count };
+  } catch (err) { return { success: false, error: err.toString() }; }
+}
+
+/* ─── Pending ───────────────────────────────────────── */
+
+function getPendingByVan(branch, vanNo) {
+  var sheet  = getSheet();
+  var values = sheet.getDataRange().getValues();
+  var result = [];
+  var target = String(vanNo).trim();
+
+  for (var i = 1; i < values.length; i++) {
+    var rowDest   = values[i][COL.DEST - 1];
+    var rowVan    = String(values[i][COL.VAN - 1] || "").trim();
+    var rowStatus = values[i][COL.STATUS - 1];
+
+    if (resolveMainBranch(rowDest) === branch && rowVan === target && rowStatus === "In Transit") {
+      result.push({ shipmentId: values[i][COL.ID - 1], origin: values[i][COL.ORIGIN - 1], destination: rowDest });
+    }
+  }
+  return result;
+}
+
+/* ─── Response helper ───────────────────────────────── */
 
 function jsonResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
