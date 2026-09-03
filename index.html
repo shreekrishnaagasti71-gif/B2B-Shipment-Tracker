@@ -581,10 +581,10 @@ function renderBranchPickGrid(options, onPick, lockUntilPick) {
   ).join('');
   grid.querySelectorAll('.branch-card').forEach(btn => {
     btn.onclick = () => {
-      if (lockUntilPick) {
-        if (checkoutInFlight) return;
-        checkoutInFlight = true;
-      }
+      // A fresh checkout screen must always accept the first tap. The
+      // disabled property below prevents a second tap while saving.
+      if (btn.disabled) return;
+      if (lockUntilPick) checkoutInFlight = true;
       // Instant visual lock-in the moment they tap, before the network call
       // even starts — this is what makes the flow feel immediate.
       grid.querySelectorAll('.branch-card').forEach(b => b.disabled = true);
@@ -605,6 +605,7 @@ function renderInitialBranchPick() {
 
 async function renderNextBranchPick() {
   pickingNextBranch = true;
+  checkoutInFlight = false;
   document.getElementById('branchPickPrompt').textContent = "🚐 Where are you heading next? Choose one branch.";
   document.getElementById('branchPickBox').classList.remove('hidden');
   document.getElementById('branchPickGrid').innerHTML = '<div style="font-size:12px;color:#94a3b8;grid-column:1/-1;padding:8px;text-align:center">Loading options…</div>';
@@ -704,6 +705,7 @@ function driverCheckIn() {
 
 function driverCheckOutStart() {
   if (!driverState || normalizedDriverStatus(driverState) !== 'AT_STATION') return;
+  checkoutInFlight = false;
   renderNextBranchPick();
 }
 
