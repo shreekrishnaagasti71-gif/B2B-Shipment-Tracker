@@ -465,6 +465,16 @@ function handleDriverCheckIn(data) {
       return { success:true, message:"Checked in at " + branch, state:driverStateResponse(getDriverState(vanNo)) };
     }
 
+    if (state.status === "AT_STATION") {
+      // A retry can arrive after Google Sheets saved the original request
+      // but the phone lost the response. Treat the same check-in as success
+      // instead of rejecting it or creating another movement row.
+      if (String(state.branch || "").toUpperCase().trim() === branch) {
+        return { success:true, message:"Check-in already saved at " + state.branch,
+          state:driverStateResponse(state) };
+      }
+      return { success:false, error:"Already checked in at " + state.branch + ". Check out before moving." };
+    }
     if (state.status !== "MOVING") {
       return { success:false, error:"Already checked in at " + state.branch + ". Check out before moving." };
     }
@@ -509,7 +519,15 @@ function handleDriverCheckOut(data) {
 
     var state = getDriverState(vanNo);
     if (!state.started) return { success:false, error:"Check in first" };
-    if (state.status === "MOVING") return { success:false, error:"Already heading to " + state.nextBranch };
+    if (state.status === "MOVING") {
+      // Idempotent retry: the phone may have timed out after this checkout
+      // was already written to the sheet.
+      if (String(state.nextBranch || "").toUpperCase().trim() === nextBranch) {
+        return { success:true, message:"Check-out already saved — heading to " + nextBranch,
+          state:driverStateResponse(state) };
+      }
+      return { success:false, error:"Already heading to " + state.nextBranch };
+    }
     if (state.status !== "AT_STATION") return { success:false, error:"Van is not at a station" };
     var allowedDestinations = DESTINATIONS[String(state.branch || "").toUpperCase().trim()] || [];
     if (allowedDestinations.indexOf(nextBranch) === -1) {
