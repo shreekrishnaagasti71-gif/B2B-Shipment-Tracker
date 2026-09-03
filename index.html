@@ -83,8 +83,13 @@ input[readonly],input:disabled{background:#f8fafc;color:#2563eb;font-weight:700;
 .reset-btn{position:fixed;top:10px;right:10px;z-index:500;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer}
 .hidden{display:none!important}
 .mt-10{margin-top:10px}.mt-15{margin-top:15px}.flex{display:flex;gap:8px}.flex-1{flex:1}
-.route-state{border-radius:12px;padding:16px;background:#eff6ff;border:1.5px solid #93c5fd;margin-top:12px}
+.route-state{border-radius:12px;padding:16px;background:#eff6ff;border:1.5px solid #93c5fd;margin-top:12px;transition:background 0.25s ease,border-color 0.25s ease,opacity 0.2s ease}
 .route-state.moving{background:#f0fdf4;border-color:#86efac}
+.route-state.fade-in{animation:fadeSlide 0.25s ease}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.branch-card{transition:all 0.15s ease}
+.branch-card.picked{background:#16a34a;border-color:#16a34a;color:#fff;transform:scale(0.96)}
+.big-time{transition:color 0.2s ease}
 .route-state h3{font-size:18px;color:#1e293b;margin-bottom:5px}
 .route-state p{font-size:12px;color:#475569;margin-top:4px}
 .timer-label{font-size:11px;font-weight:800;letter-spacing:.08em;color:#64748b;margin-top:12px}
@@ -136,29 +141,11 @@ input[readonly],input:disabled{background:#f8fafc;color:#2563eb;font-weight:700;
     </div>
 
     <!-- ============ BRANCH VIEW (unchanged) ============ -->
-    <div id="branchViewRoot" class="hidden">
-      <div id="sendTab">
-        <div class="card">
-          <h4>Send Shipment</h4>
-          <label>Origin Branch</label>
-          <input type="text" id="originBranchDisplay" readonly>
-          <label>Destination Branch</label>
-          <select id="destBranch"></select>
-          <label>Van Number</label>
-          <input type="text" id="sendVanNo" placeholder="e.g. 843">
-          <label>Shipment IDs <span style="font-weight:400;color:#94a3b8">— scan as fast as you want</span></label>
-          <div class="chip-box" onclick="document.getElementById('sendInput').focus()">
-            <div class="chip-list" id="sendChipList">
-              <span class="chip-placeholder">Scan or paste shipment IDs here</span>
-            </div>
-            <textarea id="sendInput" style="position:absolute;opacity:0;height:0;width:0;left:0;top:0" oninput="handleSendInput(this)" onkeydown="sendKey(event)" onpaste="sendPaste(event)"></textarea>
-          </div>
-          <button class="scan-big" onclick="openCamera('send')">📷 Scan Barcodes</button>
-        </div>
         <button class="btn btn-red mt-10" onclick="sendShipments()">SEND ALL (<span id="sendCount">0</span>)</button>
       </div>
+    </div>
 
-      <div id="receiveTab" class="hidden">
+    <div id="receiveTab" class="hidden">
         <div class="card">
           <h4>Receive Shipments</h4>
           <div id="staffBranchBox">
@@ -200,8 +187,27 @@ input[readonly],input:disabled{background:#f8fafc;color:#2563eb;font-weight:700;
             <button class="btn btn-blue mt-10" onclick="receiveAllSheet()" style="font-size:13px">Receive All from Sheet</button>
           </div>
         </div>
-      </div>
     </div>
+
+    <div id="branchViewRoot" class="hidden">
+      <div id="sendTab">
+        <div class="card">
+          <h4>Send Shipment</h4>
+          <label>Origin Branch</label>
+          <input type="text" id="originBranchDisplay" readonly>
+          <label>Destination Branch</label>
+          <select id="destBranch"></select>
+          <label>Van Number</label>
+          <input type="text" id="sendVanNo" placeholder="e.g. 843">
+          <label>Shipment IDs <span style="font-weight:400;color:#94a3b8">— scan as fast as you want</span></label>
+          <div class="chip-box" onclick="document.getElementById('sendInput').focus()">
+            <div class="chip-list" id="sendChipList">
+              <span class="chip-placeholder">Scan or paste shipment IDs here</span>
+            </div>
+            <textarea id="sendInput" style="position:absolute;opacity:0;height:0;width:0;left:0;top:0" oninput="handleSendInput(this)" onkeydown="sendKey(event)" onpaste="sendPaste(event)"></textarea>
+          </div>
+          <button class="scan-big" onclick="openCamera('send')">📷 Scan Barcodes</button>
+        </div>
 
     <!-- ============ DRIVER VIEW (free check-in/check-out + rounds) ============ -->
     <div id="driverViewRoot" class="hidden">
@@ -387,7 +393,8 @@ function showApp() {
     document.getElementById('branchViewRoot').classList.add('hidden');
     document.getElementById('driverViewRoot').classList.remove('hidden');
     document.getElementById('mainNavTab').textContent = 'Check In/Out';
-    document.getElementById('secondNavTab').classList.add('hidden');
+    document.getElementById('secondNavTab').classList.remove('hidden');
+    document.getElementById('secondNavTab').textContent = 'Receive';
     showTab('main');
     initDriverView();
   } else {
@@ -401,7 +408,6 @@ function showApp() {
     document.getElementById('secondNavTab').classList.remove('hidden');
     document.getElementById('secondNavTab').textContent = 'Receive';
     showTab('main');
-    document.getElementById('staffBranchDisplay').innerText = currentBranch;
     const destSel = document.getElementById('destBranch');
     destSel.innerHTML = "";
     currentDestinations.forEach(d => {
@@ -420,14 +426,19 @@ function showTab(tab) {
   else document.getElementById(tab === 'vans' ? 'allVansNavTab' : tab === 'second' ? 'secondNavTab' : 'mainNavTab').classList.add('active');
 
   document.getElementById('vansTab').classList.toggle('hidden', tab !== 'vans');
+  document.getElementById('receiveTab').classList.toggle('hidden', tab !== 'second');
 
   if (currentRole === 'driver') {
     document.getElementById('driverViewRoot').classList.toggle('hidden', tab !== 'main');
   } else {
-    document.getElementById('branchViewRoot').classList.toggle('hidden', tab === 'vans');
-    document.getElementById('sendTab').classList.toggle('hidden', tab !== 'main');
-    document.getElementById('receiveTab').classList.toggle('hidden', tab !== 'second');
-    if (tab === 'second') startVanPolling(); else stopVanPolling();
+    document.getElementById('branchViewRoot').classList.toggle('hidden', tab !== 'main');
+  }
+
+  if (tab === 'second') {
+    document.getElementById('staffBranchDisplay').innerText = getActiveBranch() || 'Check in first';
+    startVanPolling();
+  } else {
+    stopVanPolling();
   }
   if (tab === 'vans') loadVanBoard();
 }
@@ -438,7 +449,12 @@ function logout() {
   location.reload();
 }
 
+// Branch staff receive for their own branch; a driver receives for
+// whichever branch they're currently checked into (empty if not checked in).
 function getActiveBranch() {
+  if (currentRole === 'driver') {
+    return (driverState && driverState.started && driverState.branch) ? driverState.branch : "";
+  }
   return currentBranch;
 }
 
@@ -563,7 +579,13 @@ function renderBranchPickGrid(options, onPick) {
     '<button type="button" class="branch-card" data-b="' + escapeHtml(b) + '">' + escapeHtml(b) + '</button>'
   ).join('');
   grid.querySelectorAll('.branch-card').forEach(btn => {
-    btn.onclick = () => onPick(btn.dataset.b);
+    btn.onclick = () => {
+      // Instant visual lock-in the moment they tap, before the network call
+      // even starts — this is what makes the flow feel immediate.
+      grid.querySelectorAll('.branch-card').forEach(b => b.disabled = true);
+      btn.classList.add('picked');
+      onPick(btn.dataset.b);
+    };
   });
 }
 
@@ -576,8 +598,9 @@ function renderInitialBranchPick() {
 
 async function renderNextBranchPick() {
   pickingNextBranch = true;
-  document.getElementById('branchPickPrompt').textContent = "Where are you heading?";
+  document.getElementById('branchPickPrompt').textContent = "🚐 Where are you heading next?";
   document.getElementById('branchPickBox').classList.remove('hidden');
+  document.getElementById('branchPickGrid').innerHTML = '<div style="font-size:12px;color:#94a3b8;grid-column:1/-1;padding:8px;text-align:center">Loading options…</div>';
   let options = mainBranches;
   try {
     const res = await apiGet({ action: 'getDestinations', branch: driverState.branch });
@@ -627,9 +650,9 @@ function renderDriverState() {
     timer.className = 'big-time ' + ((Number(driverState.elapsedSeconds) || 0) >= 600 ? 'late' : 'on-time');
   } else if (status === 'MOVING') {
     box.classList.remove('hidden');
-    box.className = 'route-state moving';
-    title.textContent = 'Heading to ' + driverState.nextBranch;
-    text.textContent = 'Check in once you arrive.';
+    box.className = 'route-state moving fade-in';
+    title.innerHTML = 'Heading to <span style="color:#16a34a">' + driverState.nextBranch + '</span>';
+    text.textContent = 'You selected ' + driverState.nextBranch + ' — check in once you arrive.';
     const travelReady = (Number(driverState.elapsedSeconds) || 0) >= MIN_TRAVEL_SECONDS;
     checkInBtn.textContent = travelReady
       ? 'CHECK IN AT ' + driverState.nextBranch
