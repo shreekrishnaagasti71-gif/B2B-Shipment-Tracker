@@ -1,435 +1,425 @@
-/*
- * NCM B2B Tracker — Google Sheets backend
- *
- * Bind this script to the Google Sheet that should hold the data.
- * Run setup() once, then deploy as a Web app:
- *   Execute as: Me
- *   Who has access: Anyone
- *
- * The React app can use the deployment URL as VITE_API_BASE_URL.
- * This adapter intentionally mirrors the /api responses used by the app.
- */
 
-const TZ = "Asia/Kathmandu";
-const SHEETS = {
-  shipments: {
-    name: "Shipments",
-    headers: ["id", "shipmentId", "origin", "destination", "vanNo", "status", "sentAt", "receivedAt", "receivedBy"],
-  },
-  movements: {
-    name: "Movements",
-    headers: ["id", "movementDate", "vanNo", "branch", "arrivalAt", "departureAt", "holdSeconds", "nextBranch", "travelSeconds", "status", "round", "lastUpdatedAt"],
-  },
-  issues: {
-    name: "Issues",
-    headers: ["id", "reportedBy", "role", "branch", "vanNo", "message", "status", "createdAt"],
-  },
+// ═══════════════════════════════════════════════════════
+//  NCM B2B TRACKER — BACKEND (Fixed Receive + Timer)
+//  Open from: Extensions → Apps Script inside your sheet
+// ═══════════════════════════════════════════════════════
+
+const CONFIG = {
+  SHEET_NAME: "SHIPMENT GPS",
+  TIMEZONE: "Asia/Kathmandu",
+  TOTAL_COLS: 9
 };
 
-const BRANCHES = [
-  { name: "TINKUNE", code: "TINKUNE", driverOnly: false },
-  { name: "CHABAHIL", code: "CHABAHIL", driverOnly: false },
-  { name: "NAYA BUSPARK", code: "NAYA-BUSPARK", driverOnly: false },
-  { name: "KALANKI", code: "KALANKI", driverOnly: false },
-  { name: "SATDOBATO", code: "SATDOBATO", driverOnly: false },
-  { name: "NEWROAD", code: "NEWROAD", driverOnly: false },
-  { name: "BASUNDHARA", code: "BASUNDHARA", driverOnly: true },
-  { name: "SWOYAMBHU", code: "SWOYAMBHU", driverOnly: true },
-];
-const BRANCH_NAMES = BRANCHES.map((branch) => branch.name);
-const ROUTE_A = ["TINKUNE", "CHABAHIL", "BASUNDHARA", "NAYA BUSPARK", "SWOYAMBHU", "KALANKI", "SATDOBATO"];
-const ROUTE_B = ["TINKUNE", "SATDOBATO", "KALANKI", "SWOYAMBHU", "NAYA BUSPARK", "BASUNDHARA", "CHABAHIL"];
 const PASSCODES = {
-  "1111": { role: "BRANCH", branch: "TINKUNE" },
-  "2222": { role: "BRANCH", branch: "CHABAHIL" },
-  "3333": { role: "BRANCH", branch: "NAYA BUSPARK" },
-  "4444": { role: "BRANCH", branch: "KALANKI" },
-  "5555": { role: "BRANCH", branch: "SATDOBATO" },
-  "6666": { role: "BRANCH", branch: "NEWROAD" },
-  "7777": { role: "DRIVER" },
-  "9999": { role: "ADMIN" },
+  "1111": { branch: "TINKUNE",      role: "branch" },
+  "2222": { branch: "CHABAHIL",     role: "branch" },
+  "3333": { branch: "NAYA BUSPARK", role: "branch" },
+  "4444": { branch: "KALANKI",      role: "branch" },
+  "5555": { branch: "SATDOBATO",    role: "branch" },
+  "6666": { branch: "NEWROAD",      role: "branch" },
+  "7777": { role: "driver", branches: ["TINKUNE","CHABAHIL","NAYA BUSPARK","KALANKI","SATDOBATO","NEWROAD"] }
 };
 
-function setup() {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  Object.keys(SHEETS).forEach((key) => {
-    const config = SHEETS[key];
-    const sheet = spreadsheet.getSheetByName(config.name) || spreadsheet.insertSheet(config.name);
-    if (sheet.getLastRow() === 0) {
-      sheet.getRange(1, 1, 1, config.headers.length).setValues([config.headers]);
-      sheet.setFrozenRows(1);
-    }
-  });
-  spreadsheet.toast("NCM tracker sheets are ready.");
+const DESTINATIONS = {
+  "TINKUNE":      ["NAYA THIMI","SURYABINAYAK","LUBHU","CHABAHIL","NAYA BUSPARK","KALANKI","SATDOBATO","NEWROAD"],
+  "CHABAHIL":     ["KAPAN","BUDHANILKANTHA","SANKHU","SUNDARIJAL","NAYA BUSPARK","KALANKI","SATDOBATO","TINKUNE","NEWROAD"],
+  "NAYA BUSPARK": ["NEWROAD","KALANKI","SATDOBATO","TINKUNE","CHABAHIL"],
+  "KALANKI":      ["THANKOT","SATDOBATO","TINKUNE","CHABAHIL","NAYA BUSPARK","NEWROAD"],
+  "SATDOBATO":    ["TINKUNE","CHABAHIL","NAYA BUSPARK","KALANKI","NEWROAD","CHAPAGAU","GODAWARI"],
+  "NEWROAD":      ["CHABAHIL","NAYA BUSPARK","KALANKI","SATDOBATO","TINKUNE"]
+};
+
+const SUB_BRANCHES = {
+  "KAPAN":"CHABAHIL","BUDHANILKANTHA":"CHABAHIL","SANKHU":"CHABAHIL","SUNDARIJAL":"CHABAHIL",
+  "NAYA THIMI":"TINKUNE","SURYABINAYAK":"TINKUNE","LUBHU":"TINKUNE",
+  "GODAWARI":"SATDOBATO","CHAPAGAU":"SATDOBATO",
+  "SWOYAMBHU":"NAYA BUSPARK","BASUNDHARA":"NAYA BUSPARK",
+  "THANKOT":"KALANKI"
+};
+
+const COL = { DATE:1, ORIGIN:2, DEST:3, SEND_TIME:4, ID:5, VAN:6, STATUS:7, RECV_BY:8, RECV_TIME:9 };
+
+function resolveMainBranch(name) {
+  if (!name) return name;
+  var upper = name.toString().toUpperCase().trim();
+  return SUB_BRANCHES[upper] || upper;
 }
 
-function doGet(event) {
-  return route_(event, "GET");
-}
-
-function doPost(event) {
-  return route_(event, "POST");
-}
-
-function route_(event, method) {
-  try {
-    const path = path_(event);
-    const body = method === "POST" ? body_(event) : {};
-    if (method === "POST" && path === "session") return json_(session_(body));
-    if (method === "GET" && path === "movement/branches") return json_(BRANCHES);
-    if (method === "GET" && path === "dashboard") return json_(dashboard_());
-    if (method === "GET" && path === "shipments") return json_(listShipments_(event.parameter || {}));
-    if (method === "GET" && path === "movement/vans") return json_(listVans_());
-    if (method === "GET" && path.indexOf("movement/vans/") === 0) return json_(movement_(decodeURIComponent(path.split("/").pop())));
-    if (method === "GET" && path === "issues") return json_(listIssues_(event.parameter || {}));
-    if (method === "POST" && path === "shipments/send") return json_(sendShipments_(body));
-    if (method === "POST" && path === "shipments/receive") return json_(receiveShipments_(body));
-    if (method === "POST" && path === "movement/check-in") return json_(checkIn_(body));
-    if (method === "POST" && path === "movement/check-out") return json_(checkOut_(body));
-    if (method === "POST" && path === "issues") return json_(createIssue_(body));
-    if (method === "POST" && path.indexOf("issues/") === 0 && path.endsWith("/close")) {
-      return json_(closeIssue_(path.split("/")[1]));
-    }
-    return json_({ error: "Not found", path: path }, 404);
-  } catch (error) {
-    return json_({ error: error.message || String(error) }, 400);
+function getSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(CONFIG.SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(CONFIG.SHEET_NAME);
+    sheet.appendRow(["Date","Origin","Destination","Send Time","Shipment ID","Van No","Status","Received By","Received Time"]);
+    sheet.setFrozenRows(1);
   }
-}
-
-function path_(event) {
-  let value = String((event && event.pathInfo) || (event && event.parameter && event.parameter.path) || "").replace(/^\/+/, "");
-  if (value.indexOf("api/") === 0) value = value.slice(4);
-  return value || "dashboard";
-}
-
-function body_(event) {
-  const raw = event && event.postData && event.postData.contents;
-  if (!raw) return {};
-  return typeof raw === "string" ? JSON.parse(raw) : raw;
-}
-
-function json_(value, status) {
-  // Apps Script ContentService does not expose custom response headers. The
-  // web app is called with a simple text/plain POST by the React client, so
-  // browsers do not issue a preflight request.
-  return ContentService.createTextOutput(JSON.stringify(value)).setMimeType(ContentService.MimeType.JSON);
-}
-
-function spreadsheet_() {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  if (!spreadsheet) throw new Error("Bind this Apps Script project to a Google Sheet first.");
-  return spreadsheet;
-}
-
-function sheet_(key) {
-  const config = SHEETS[key];
-  const sheet = spreadsheet_().getSheetByName(config.name);
-  if (!sheet) throw new Error("Run setup() before using the tracker.");
+  // Ensure we always have 9 columns so getDataRange() never shrinks
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < CONFIG.TOTAL_COLS) {
+    sheet.insertColumnsAfter(lastCol, CONFIG.TOTAL_COLS - lastCol);
+  }
   return sheet;
 }
 
-function records_(key) {
-  const config = SHEETS[key];
-  const sheet = sheet_(key);
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
-  const values = sheet.getRange(2, 1, lastRow - 1, config.headers.length).getValues();
-  return values.map((row, index) => {
-    const record = { _row: index + 2 };
-    config.headers.forEach((header, column) => { record[header] = row[column]; });
-    return record;
-  });
+function getAllValues(sheet) {
+  var lr = sheet.getLastRow();
+  if (lr < 1) lr = 1;
+  return sheet.getRange(1, 1, lr, CONFIG.TOTAL_COLS).getValues();
 }
 
-function nextId_(key) {
-  const ids = records_(key).map((record) => Number(record.id) || 0);
-  return (ids.length ? Math.max.apply(null, ids) : 0) + 1;
+function setAllValues(sheet, values) {
+  var lr = values.length;
+  if (lr < 1) lr = 1;
+  sheet.getRange(1, 1, lr, CONFIG.TOTAL_COLS).setValues(values);
 }
 
-function append_(key, record) {
-  const config = SHEETS[key];
-  const values = config.headers.map((header) => record[header] === undefined ? "" : record[header]);
-  sheet_(key).appendRow(values);
-  return record;
+/* ===================== SAFE DATE PARSER ===================== */
+
+function parseDateTime(dateVal, timeVal) {
+  var d;
+  try {
+    if (dateVal instanceof Date) {
+      d = new Date(dateVal.getFullYear(), dateVal.getMonth(), dateVal.getDate());
+    } else {
+      var ds = String(dateVal).trim();
+      // Handle yyyy-MM-dd
+      var m = ds.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (m) {
+        d = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+      } else {
+        d = new Date(ds);
+      }
+    }
+  } catch(e) { d = new Date(); }
+  
+  if (!d || isNaN(d.getTime())) d = new Date();
+  
+  var h = 0, mn = 0, s = 0;
+  try {
+    if (timeVal instanceof Date) {
+      h = timeVal.getHours();
+      mn = timeVal.getMinutes();
+      s = timeVal.getSeconds();
+    } else {
+      var ts = String(timeVal || "00:00:00");
+      var p = ts.match(/(\d{1,2}):(\d{2}):(\d{2})/);
+      if (p) {
+        h = parseInt(p[1]);
+        mn = parseInt(p[2]);
+        s = parseInt(p[3]);
+      }
+    }
+  } catch(e) {}
+  
+  d.setHours(h, mn, s, 0);
+  return d;
 }
 
-function update_(key, record) {
-  const config = SHEETS[key];
-  const values = config.headers.map((header) => record[header] === undefined ? "" : record[header]);
-  sheet_(key).getRange(record._row, 1, 1, config.headers.length).setValues([values]);
-  return record;
-}
+/* ===================== INCOMING VANS (LIVE TIMER) ===================== */
 
-function clean_(value) {
-  return String(value == null ? "" : value).trim().toUpperCase();
-}
+function getIncomingVans(branch) {
+  try {
+    var sheet = getSheet();
+    var values = getAllValues(sheet);
+    var now = new Date();
+    var vans = {};
 
-function iso_(value) {
-  if (!value) return null;
-  const date = value instanceof Date ? value : new Date(value);
-  return isNaN(date.getTime()) ? null : date.toISOString();
-}
+    for (var i = 1; i < values.length; i++) {
+      var dest = values[i][COL.DEST - 1];
+      var van = String(values[i][COL.VAN - 1] || "").trim();
+      var status = String(values[i][COL.STATUS - 1] || "").trim();
+      var origin = values[i][COL.ORIGIN - 1];
+      var dateStr = values[i][COL.DATE - 1];
+      var sendTime = values[i][COL.SEND_TIME - 1];
 
-function seconds_(value, end) {
-  if (!value) return 0;
-  const start = value instanceof Date ? value.getTime() : new Date(value).getTime();
-  const finish = (end || new Date()).getTime();
-  return isNaN(start) ? 0 : Math.max(0, Math.floor((finish - start) / 1000));
-}
+      if (van && resolveMainBranch(dest) === branch && status === "In Transit") {
+        var key = van + "|" + origin;
+        if (!vans[key]) {
+          vans[key] = { vanNo: van, origin: origin, dateStr: dateStr, sendTime: sendTime, count: 0 };
+        }
+        vans[key].count++;
+      }
+    }
 
-function today_() {
-  const date = Utilities.formatDate(new Date(), TZ, "yyyy-MM-dd");
-  const start = new Date(date + "T00:00:00+05:45");
-  return { date: date, start: start, end: new Date(start.getTime() + 86400000) };
-}
+    var result = [];
+    for (var key in vans) {
+      var v = vans[key];
+      var sentAt = parseDateTime(v.dateStr, v.sendTime);
+      var ms = now.getTime() - sentAt.getTime();
+      if (isNaN(ms) || ms < 0) ms = 0;
+      var min = Math.floor(ms / 60000);
+      var sec = Math.floor((ms % 60000) / 1000);
+      result.push({
+        vanNo: v.vanNo,
+        origin: v.origin,
+        count: v.count,
+        elapsedMinutes: min,
+        elapsedSeconds: sec,
+        isLate: min >= 20
+      });
+    }
 
-function inToday_(value) {
-  const bounds = today_();
-  const date = value instanceof Date ? value : new Date(value);
-  return !isNaN(date.getTime()) && date >= bounds.start && date < bounds.end;
-}
-
-function session_(body) {
-  const config = PASSCODES[String(body.passcode || "").trim()];
-  if (!config) throw new Error("Invalid passcode");
-  return {
-    role: config.role,
-    branch: config.branch || null,
-    destinations: [],
-    driverBranches: BRANCH_NAMES,
-  };
-}
-
-function listShipments_(params) {
-  const status = params.status || "ALL";
-  const branch = clean_(params.branch);
-  const limit = Math.min(Number(params.limit) || 100, 500);
-  return records_("shipments")
-    .filter((row) => (status === "ALL" || row.status === status))
-    .filter((row) => !branch || clean_(row.origin) === branch || clean_(row.destination) === branch)
-    .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime())
-    .slice(0, limit)
-    .map(mapShipment_);
-}
-
-function mapShipment_(row) {
-  return {
-    id: Number(row.id),
-    shipmentId: String(row.shipmentId),
-    origin: String(row.origin),
-    destination: String(row.destination),
-    vanNo: String(row.vanNo),
-    status: row.status === "RECEIVED" ? "RECEIVED" : "IN_TRANSIT",
-    sentAt: iso_(row.sentAt),
-    receivedAt: iso_(row.receivedAt),
-    receivedBy: row.receivedBy || null,
-    elapsedSeconds: seconds_(row.sentAt, row.receivedAt ? new Date(row.receivedAt) : new Date()),
-  };
-}
-
-function sendShipments_(body) {
-  const origin = clean_(body.origin);
-  const destination = clean_(body.destination);
-  const vanNo = clean_(body.vanNo);
-  const ids = Array.from(new Set((body.shipmentIds || []).map(clean_).filter(Boolean)));
-  if (!BRANCH_NAMES.includes(origin) || !BRANCH_NAMES.includes(destination) || !vanNo || !ids.length) {
-    throw new Error("Choose valid branches, van number, and shipment IDs");
-  }
-  const existing = records_("shipments");
-  const duplicateSet = new Set(existing.filter((row) => row.status === "IN_TRANSIT").map((row) => String(row.shipmentId)));
-  const duplicates = ids.filter((id) => duplicateSet.has(id));
-  const accepted = ids.filter((id) => !duplicateSet.has(id));
-  const inserted = accepted.map((shipmentId) => append_("shipments", {
-    id: nextId_("shipments"),
-    shipmentId: shipmentId,
-    origin: origin,
-    destination: destination,
-    vanNo: vanNo,
-    status: "IN_TRANSIT",
-    sentAt: new Date(),
-    receivedAt: "",
-    receivedBy: "",
-  }));
-  return { processed: ids.length, received: inserted.length, duplicates: duplicates, notFound: [], shipments: inserted.map(mapShipment_) };
-}
-
-function receiveShipments_(body) {
-  const branch = clean_(body.branch);
-  const vanNo = clean_(body.vanNo);
-  const ids = Array.from(new Set((body.shipmentIds || []).map(clean_).filter(Boolean)));
-  const rows = records_("shipments");
-  const eligible = rows.filter((row) =>
-    ids.indexOf(String(row.shipmentId)) >= 0 &&
-    row.status === "IN_TRANSIT" &&
-    clean_(row.destination) === branch &&
-    clean_(row.vanNo) === vanNo
-  );
-  const eligibleIds = new Set(eligible.map((row) => String(row.shipmentId)));
-  const notFound = ids.filter((id) => !eligibleIds.has(id));
-  const now = new Date();
-  eligible.forEach((row) => {
-    row.status = "RECEIVED";
-    row.receivedAt = now;
-    row.receivedBy = branch;
-    update_("shipments", row);
-  });
-  return { processed: ids.length, received: eligible.length, duplicates: [], notFound: notFound, shipments: eligible.map(mapShipment_) };
-}
-
-function movementRows_(vanNo) {
-  return records_("movements")
-    .filter((row) => clean_(row.vanNo) === clean_(vanNo) && inToday_(row.arrivalAt))
-    .sort((a, b) => new Date(a.arrivalAt).getTime() - new Date(b.arrivalAt).getTime());
-}
-
-function route_(rows) {
-  const first = rows.find((row) => row.nextBranch);
-  return first && clean_(first.nextBranch) === "SATDOBATO" ? ROUTE_B.slice() : ROUTE_A.slice();
-}
-
-function summary_(rows, currentRound, currentBranch) {
-  const route = route_(rows);
-  const roundRows = rows.filter((row) => Number(row.round) === Number(currentRound));
-  const visited = Array.from(new Set(roundRows.map((row) => clean_(row.branch)).filter((branch) => route.indexOf(branch) >= 0)));
-  const missing = route.filter((branch) => visited.indexOf(branch) < 0);
-  return {
-    round: Number(currentRound),
-    route: route,
-    visited: visited,
-    missing: missing,
-    completed: clean_(currentBranch) === "TINKUNE" && visited.length >= route.length,
-  };
-}
-
-function movement_(vanNo) {
-  const rows = movementRows_(vanNo);
-  if (!rows.length) {
-    return {
-      vanNo: clean_(vanNo), status: "NOT_STARTED", branch: null, nextBranch: null,
-      arrivalAt: null, departureAt: null, elapsedSeconds: 0, holdSeconds: 0, travelSeconds: 0,
-      round: 1, roundSummary: { round: 1, route: ROUTE_A.slice(), visited: [], missing: ROUTE_A.slice(), completed: false },
-      lastUpdatedAt: new Date().toISOString(),
-    };
-  }
-  const row = rows[rows.length - 1];
-  const moving = row.status === "MOVING";
-  return {
-    vanNo: String(row.vanNo), status: moving ? "MOVING" : "AT_BRANCH",
-    branch: String(row.branch), nextBranch: row.nextBranch || null,
-    arrivalAt: iso_(row.arrivalAt), departureAt: iso_(row.departureAt),
-    elapsedSeconds: moving ? seconds_(row.departureAt) : seconds_(row.arrivalAt),
-    holdSeconds: Number(row.holdSeconds) || 0,
-    travelSeconds: Number(row.travelSeconds) || (moving ? seconds_(row.departureAt) : 0),
-    round: Number(row.round) || 1,
-    roundSummary: summary_(rows, Number(row.round) || 1, row.branch),
-    lastUpdatedAt: iso_(row.lastUpdatedAt) || new Date().toISOString(),
-  };
-}
-
-function listVans_() {
-  const vans = Array.from(new Set(records_("movements").filter((row) => inToday_(row.arrivalAt)).map((row) => clean_(row.vanNo))));
-  return vans.map(movement_);
-}
-
-function checkIn_(body) {
-  const vanNo = clean_(body.vanNo);
-  const branch = clean_(body.branch);
-  if (!vanNo || BRANCH_NAMES.indexOf(branch) < 0) throw new Error("Choose a valid van and branch");
-  const rows = movementRows_(vanNo);
-  const previous = rows[rows.length - 1];
-  if (!previous) {
-    append_("movements", {
-      id: nextId_("movements"), movementDate: today_().date, vanNo: vanNo, branch: branch,
-      arrivalAt: new Date(), departureAt: "", holdSeconds: 0, nextBranch: "",
-      travelSeconds: 0, status: "AT_BRANCH", round: 1, lastUpdatedAt: new Date(),
+    result.sort(function(a, b) {
+      return (a.elapsedMinutes * 60 + a.elapsedSeconds) - (b.elapsedMinutes * 60 + b.elapsedSeconds);
     });
-    return movement_(vanNo);
+
+    return result;
+  } catch(e) {
+    return [];
   }
-  if (previous.status !== "MOVING") throw new Error("Van is already at " + previous.branch);
-  const now = new Date();
-  previous.status = "COMPLETE";
-  previous.travelSeconds = seconds_(previous.departureAt, now);
-  previous.lastUpdatedAt = now;
-  update_("movements", previous);
-  append_("movements", {
-    id: nextId_("movements"), movementDate: today_().date, vanNo: vanNo, branch: branch,
-    arrivalAt: now, departureAt: "", holdSeconds: 0, nextBranch: "",
-    travelSeconds: 0, status: "AT_BRANCH",
-    round: branch === "TINKUNE" && clean_(previous.branch) !== "TINKUNE" ? Number(previous.round) + 1 : Number(previous.round),
-    lastUpdatedAt: now,
-  });
-  return movement_(vanNo);
 }
 
-function checkOut_(body) {
-  const vanNo = clean_(body.vanNo);
-  const nextBranch = clean_(body.nextBranch);
-  if (!vanNo || BRANCH_NAMES.indexOf(nextBranch) < 0) throw new Error("Choose a valid van and next branch");
-  const rows = movementRows_(vanNo);
-  const current = rows[rows.length - 1];
-  if (!current) throw new Error("Check in at a branch first");
-  if (current.status === "MOVING") throw new Error("Already heading to " + current.nextBranch);
-  const now = new Date();
-  current.departureAt = now;
-  current.holdSeconds = seconds_(current.arrivalAt, now);
-  current.nextBranch = nextBranch;
-  current.status = "MOVING";
-  current.lastUpdatedAt = now;
-  update_("movements", current);
-  return movement_(vanNo);
+/* ===================== WEB APP ===================== */
+
+function doGet(e) {
+  var action = e && e.parameter && e.parameter.action;
+  if (!action) return jsonResponse({ success: false, error: "No action" });
+
+  if (action === "login") {
+    var pc = e.parameter.passcode;
+    var cfg = PASSCODES[pc];
+    if (!cfg) return jsonResponse({ success: false, error: "Invalid passcode" });
+    var res = { success: true, role: cfg.role };
+    if (cfg.role === "branch") {
+      res.branch = cfg.branch;
+      res.destinations = DESTINATIONS[cfg.branch] || [];
+    } else if (cfg.role === "driver") {
+      res.branches = cfg.branches;
+    }
+    return jsonResponse(res);
+  }
+
+  if (action === "getPendingByVan") {
+    var data = getPendingByVan(e.parameter.branch, e.parameter.vanNo);
+    return jsonResponse({ success: true, count: data.length, data: data });
+  }
+
+  if (action === "getIncomingVans") {
+    var data = getIncomingVans(e.parameter.branch);
+    return jsonResponse({ success: true, data: data });
+  }
+
+  return jsonResponse({ success: false, error: "Unknown action" });
 }
 
-function listIssues_(params) {
-  const status = params.status || "OPEN";
-  return records_("issues")
-    .filter((row) => status === "ALL" || row.status === status)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 100)
-    .map(mapIssue_);
+function doPost(e) {
+  var body;
+  try { body = JSON.parse(e.postData.contents); }
+  catch (err) { return jsonResponse({ success: false, error: "Bad JSON" }); }
+
+  switch (body.action) {
+    case 'sendBatch':    return jsonResponse(handleSendBatch(body));
+    case 'receiveBatch': return jsonResponse(handleReceiveBatch(body));
+    case 'receiveOne':   return jsonResponse(handleReceiveOne(body));
+    case 'receiveAll':   return jsonResponse(handleReceiveAll(body));
+    default:             return jsonResponse({ success: false, error: 'Unknown action' });
+  }
 }
 
-function mapIssue_(row) {
-  return {
-    id: Number(row.id), reportedBy: String(row.reportedBy), role: String(row.role),
-    branch: row.branch || null, vanNo: row.vanNo || null, message: String(row.message),
-    status: row.status === "CLOSED" ? "CLOSED" : "OPEN", createdAt: iso_(row.createdAt),
-  };
+/* ===================== SEND BATCH ===================== */
+
+function handleSendBatch(data) {
+  try {
+    var sheet = getSheet();
+    var values = getAllValues(sheet);
+    var now = new Date();
+    var tz = CONFIG.TIMEZONE;
+    var dateStr = Utilities.formatDate(now, tz, "yyyy-MM-dd");
+    var timeStr = Utilities.formatDate(now, tz, "HH:mm:ss");
+
+    var inTransitIds = {};
+    for (var i = 1; i < values.length; i++) {
+      var sid = String(values[i][COL.ID - 1] || "").trim();
+      var status = String(values[i][COL.STATUS - 1] || "").trim();
+      if (sid && status === "In Transit") inTransitIds[sid] = values[i][COL.ORIGIN - 1];
+    }
+
+    var newRows = [];
+    var results = [];
+    var vanNo = String(data.vanNo || "N/A").trim();
+    var origin = data.origin;
+    var dest = data.destination;
+    var shipments = data.shipments || [];
+
+    for (var j = 0; j < shipments.length; j++) {
+      var item = shipments[j];
+      var sid = String(item.shipmentId || "").trim();
+      if (!sid) continue;
+
+      if (inTransitIds[sid]) {
+        results.push({ shipmentId: sid, status: "duplicate", error: sid + " already In Transit from " + inTransitIds[sid] });
+      } else {
+        newRows.push([dateStr, origin, dest, timeStr, sid, vanNo, "In Transit", "", ""]);
+        results.push({ shipmentId: sid, status: "sent" });
+        inTransitIds[sid] = origin;
+      }
+    }
+
+    if (newRows.length > 0) {
+      var startRow = sheet.getLastRow() + 1;
+      var needed = startRow + newRows.length - 1;
+      if (sheet.getMaxRows() < needed) {
+        sheet.insertRowsAfter(sheet.getMaxRows(), needed - sheet.getMaxRows() + 5);
+      }
+      sheet.getRange(startRow, 1, newRows.length, CONFIG.TOTAL_COLS).setValues(newRows);
+    }
+
+    return { success: true, sent: newRows.length, results: results };
+
+  } catch (err) { return { success: false, error: err.toString() }; }
 }
 
-function createIssue_(body) {
-  const reportedBy = String(body.reportedBy || "").trim();
-  const message = String(body.message || "").trim();
-  if (!reportedBy || !message) throw new Error("Name and message are required");
-  const row = append_("issues", {
-    id: nextId_("issues"), reportedBy: reportedBy,
-    role: String(body.role || "BRANCH"), branch: body.branch ? clean_(body.branch) : "",
-    vanNo: body.vanNo ? clean_(body.vanNo) : "", message: message,
-    status: "OPEN", createdAt: new Date(),
-  });
-  return mapIssue_(row);
+/* ===================== RECEIVE BATCH (FIXED) ===================== */
+
+function handleReceiveBatch(data) {
+  try {
+    var sheet = getSheet();
+    var values = getAllValues(sheet);
+    var now = new Date();
+    var tz = CONFIG.TIMEZONE;
+    var timeStr = Utilities.formatDate(now, tz, "HH:mm:ss");
+
+    var targetIds = {};
+    var rawIds = data.shipmentIds || [];
+    for (var k = 0; k < rawIds.length; k++) targetIds[String(rawIds[k]).trim()] = true;
+
+    var targetVan = String(data.vanNo).trim();
+    var branch = data.branch;
+    var receivedCount = 0;
+    var foundIds = {};
+    var notFoundIds = [];
+    var modified = false;
+
+    for (var i = 1; i < values.length; i++) {
+      var sid = String(values[i][COL.ID - 1] || "").trim();
+      var dest = values[i][COL.DEST - 1];
+      var van = String(values[i][COL.VAN - 1] || "").trim();
+      var status = String(values[i][COL.STATUS - 1] || "").trim();
+
+      if (targetIds[sid] &&
+          resolveMainBranch(dest) === branch &&
+          van === targetVan &&
+          status === "In Transit" &&
+          !foundIds[sid]) {
+
+        values[i][COL.STATUS - 1] = "Received";
+        values[i][COL.RECV_BY - 1] = branch;
+        values[i][COL.RECV_TIME - 1] = timeStr;
+        receivedCount++;
+        foundIds[sid] = true;
+        modified = true;
+      }
+    }
+
+    if (modified) {
+      setAllValues(sheet, values);
+    }
+
+    for (var j = 0; j < rawIds.length; j++) {
+      var id = String(rawIds[j]).trim();
+      if (!foundIds[id]) notFoundIds.push(id);
+    }
+
+    return {
+      success: true,
+      message: receivedCount + " received" + (notFoundIds.length ? ", " + notFoundIds.length + " not found" : ""),
+      receivedCount: receivedCount,
+      notFoundIds: notFoundIds
+    };
+
+  } catch (err) { return { success: false, error: err.toString() }; }
 }
 
-function closeIssue_(id) {
-  const rows = records_("issues");
-  const row = rows.find((item) => String(item.id) === String(id));
-  if (!row) throw new Error("Issue not found");
-  row.status = "CLOSED";
-  return mapIssue_(update_("issues", row));
+/* ===================== RECEIVE ONE (FIXED) ===================== */
+
+function handleReceiveOne(data) {
+  try {
+    var sheet = getSheet();
+    var values = getAllValues(sheet);
+    var now = new Date();
+    var tz = CONFIG.TIMEZONE;
+    var timeStr = Utilities.formatDate(now, tz, "HH:mm:ss");
+
+    for (var i = 1; i < values.length; i++) {
+      var sid = String(values[i][COL.ID - 1] || "").trim();
+      var dest = values[i][COL.DEST - 1];
+      var van = String(values[i][COL.VAN - 1] || "").trim();
+      var status = String(values[i][COL.STATUS - 1] || "").trim();
+
+      if (sid === String(data.shipmentId || "").trim() &&
+          resolveMainBranch(dest) === data.branch &&
+          van === String(data.vanNo).trim() &&
+          status === "In Transit") {
+
+        values[i][COL.STATUS - 1] = "Received";
+        values[i][COL.RECV_BY - 1] = data.branch;
+        values[i][COL.RECV_TIME - 1] = timeStr;
+        setAllValues(sheet, values);
+        return { success: true, message: data.shipmentId + " received" };
+      }
+    }
+    return { success: false, error: "Not found or already received" };
+  } catch (err) { return { success: false, error: err.toString() }; }
 }
 
-function dashboard_() {
-  const shipments = records_("shipments").sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()).slice(0, 100);
-  const vans = listVans_();
-  const issues = records_("issues").filter((row) => row.status === "OPEN").sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 10);
-  return {
-    generatedAt: new Date().toISOString(),
-    inTransitShipments: shipments.filter((row) => row.status === "IN_TRANSIT").length,
-    receivedToday: shipments.filter((row) => row.status === "RECEIVED" && inToday_(row.receivedAt)).length,
-    movingVans: vans.filter((van) => van.status === "MOVING").length,
-    atBranchVans: vans.filter((van) => van.status === "AT_BRANCH").length,
-    openIssues: issues.length,
-    vans: vans,
-    recentShipments: shipments.slice(0, 8).map(mapShipment_),
-    recentIssues: issues.map(mapIssue_),
-  };
+/* ===================== RECEIVE ALL (FIXED) ===================== */
+
+function handleReceiveAll(data) {
+  try {
+    var sheet = getSheet();
+    var values = getAllValues(sheet);
+    var count = 0;
+    var now = new Date();
+    var tz = CONFIG.TIMEZONE;
+    var timeStr = Utilities.formatDate(now, tz, "HH:mm:ss");
+    var modified = false;
+
+    for (var i = 1; i < values.length; i++) {
+      var dest = values[i][COL.DEST - 1];
+      var van = String(values[i][COL.VAN - 1] || "").trim();
+      var status = String(values[i][COL.STATUS - 1] || "").trim();
+
+      if (resolveMainBranch(dest) === data.branch &&
+          van === String(data.vanNo).trim() &&
+          status === "In Transit") {
+
+        values[i][COL.STATUS - 1] = "Received";
+        values[i][COL.RECV_BY - 1] = data.branch;
+        values[i][COL.RECV_TIME - 1] = timeStr;
+        count++;
+        modified = true;
+      }
+    }
+
+    if (modified) {
+      setAllValues(sheet, values);
+    }
+
+    return { success: true, message: count + " shipment(s) received", count: count };
+  } catch (err) { return { success: false, error: err.toString() }; }
+}
+
+/* ===================== PENDING ===================== */
+
+function getPendingByVan(branch, vanNo) {
+  var sheet = getSheet();
+  var values = getAllValues(sheet);
+  var result = [];
+  var targetVan = String(vanNo).trim();
+
+  for (var i = 1; i < values.length; i++) {
+    var rowDest = values[i][COL.DEST - 1];
+    var rowVan = String(values[i][COL.VAN - 1] || "").trim();
+    var rowStatus = String(values[i][COL.STATUS - 1] || "").trim();
+
+    if (resolveMainBranch(rowDest) === branch && rowVan === targetVan && rowStatus === "In Transit") {
+      result.push({ shipmentId: values[i][COL.ID - 1], origin: values[i][COL.ORIGIN - 1], destination: rowDest });
+    }
+  }
+  return result;
+}
+
+function jsonResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
 }
