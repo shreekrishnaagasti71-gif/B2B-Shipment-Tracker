@@ -7,9 +7,12 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Segoe UI,Arial,sans-serif;background:#f8fafc;color:#1e293b;min-height:100vh;padding-bottom:80px}
-.header{background:#fff;padding:16px 20px;text-align:center;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+.header{background:#fff;padding:16px 20px;text-align:center;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.05);position:relative}
 .header h1{font-size:20px;color:#dc2626;font-weight:800;letter-spacing:0.5px}
 .header p{font-size:11px;color:#64748b;margin-top:2px}
+.live-clock{position:absolute;right:14px;top:14px;text-align:right;color:#2563eb;font-weight:800;font-size:12px;line-height:1.3}
+.live-clock small{display:block;color:#64748b;font-size:9px;font-weight:600}
+.build-tag{position:fixed;bottom:56px;right:8px;font-size:9px;color:#cbd5e1;z-index:50;font-family:monospace}
 .container{padding:15px;max-width:520px;margin:0 auto}
 .login-box{background:#fff;border-radius:14px;padding:28px 20px;margin-top:20px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .login-box h2{text-align:center;color:#1e293b;margin-bottom:20px;font-size:18px;font-weight:700}
@@ -20,7 +23,9 @@ body{font-family:Segoe UI,Arial,sans-serif;background:#f8fafc;color:#1e293b;min-
 .btn-red{background:#dc2626;color:#fff}.btn-red:hover{background:#b91c1c}
 .btn-blue{background:#2563eb;color:#fff}.btn-blue:hover{background:#1d4ed8}
 .btn-green{background:#16a34a;color:#fff}.btn-green:hover{background:#15803d}
+.btn-outline-red{background:#fff;color:#dc2626;border:2px solid #dc2626}.btn-outline-red:hover{background:#fef2f2}.btn-outline-red:disabled{background:#f1f5f9;color:#94a3b8;border-color:#e2e8f0}
 .btn-grey{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1}.btn-grey:hover{background:#e2e8f0}
+.btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-small{padding:8px 14px;font-size:12px;width:auto}
 .nav-tabs{display:flex;gap:6px;margin-bottom:15px;background:#fff;padding:4px;border-radius:10px;border:1px solid #e2e8f0}
 .nav-tab{flex:1;padding:10px;text-align:center;background:transparent;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;color:#64748b;border:none}
@@ -30,9 +35,9 @@ body{font-family:Segoe UI,Arial,sans-serif;background:#f8fafc;color:#1e293b;min-
 label{display:block;color:#64748b;font-size:12px;margin-bottom:5px;font-weight:600}
 input,select{width:100%;padding:11px;font-size:15px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;color:#1e293b}
 input:focus,select:focus{outline:none;border-color:#dc2626}
-input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e2e8f0}
+input[readonly],input:disabled{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e2e8f0}
 .scan-big{width:100%;padding:28px;font-size:18px;font-weight:800;border:none;border-radius:14px;cursor:pointer;background:#16a34a;color:#fff;text-transform:uppercase;letter-spacing:0.5px;box-shadow:0 4px 14px rgba(22,163,74,0.25);display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px}
-.scan-big:hover{background:#15803d;transform:translateY(-1px)}
+.scan-big:hover{background:#15803d}
 .scan-big:active{transform:scale(0.98)}
 .chip-box{background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;min-height:56px;margin-top:10px;position:relative}
 .chip-box:focus-within{border-color:#dc2626}
@@ -46,16 +51,17 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .branch-card{background:#fff;border:2px solid #e2e8f0;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;transition:all 0.15s;font-size:13px;font-weight:700;color:#475569}
 .branch-card:active{transform:scale(0.96)}
 .branch-card.selected{background:#2563eb;border-color:#2563eb;color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.25)}
-.branch-card .branch-icon{font-size:20px;margin-bottom:4px;display:block}
 .branch-display{background:#f0f9ff;border:2px solid #2563eb;border-radius:10px;padding:14px;text-align:center;font-size:16px;font-weight:800;color:#2563eb;margin-bottom:12px}
 .van-card{border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;border:2px solid}
 .van-card.green{background:#dcfce7;border-color:#16a34a;color:#14532d}
 .van-card.red{background:#fee2e2;border-color:#dc2626;color:#7f1d1d}
+.van-card.blue{background:#eff6ff;border-color:#93c5fd;color:#1e3a8a;cursor:default}
 .van-card:active{transform:scale(0.98)}
 .van-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .van-title{font-size:16px;font-weight:800}
 .van-timer{font-size:24px;font-weight:800;font-family:monospace;letter-spacing:1px}
 .van-meta{font-size:12px;font-weight:600;opacity:0.8;margin-top:4px}
+.round-badge{display:inline-block;font-size:10px;font-weight:800;padding:1px 6px;border-radius:4px;background:#fef9c3;color:#854d0e;margin-left:4px}
 .cam-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:2000;flex-direction:column}
 .cam-modal.active{display:flex}
 .cam-modal video{width:100%;height:calc(100% - 80px);object-fit:cover}
@@ -77,6 +83,19 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 .reset-btn{position:fixed;top:10px;right:10px;z-index:500;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer}
 .hidden{display:none!important}
 .mt-10{margin-top:10px}.mt-15{margin-top:15px}.flex{display:flex;gap:8px}.flex-1{flex:1}
+.route-state{border-radius:12px;padding:16px;background:#eff6ff;border:1.5px solid #93c5fd;margin-top:12px}
+.route-state.moving{background:#f0fdf4;border-color:#86efac}
+.route-state h3{font-size:18px;color:#1e293b;margin-bottom:5px}
+.route-state p{font-size:12px;color:#475569;margin-top:4px}
+.timer-label{font-size:11px;font-weight:800;letter-spacing:.08em;color:#64748b;margin-top:12px}
+.big-time{font:800 28px monospace;color:#2563eb;margin:10px 0}
+.big-time.on-time{color:#16a34a}.big-time.late{color:#dc2626}
+.route-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.route-actions .btn{font-size:12px;padding:12px 6px}
+.route-server-status{font-size:11px;color:#64748b;margin-top:9px;min-height:15px;text-align:center}
+.route-server-status.bad{color:#dc2626;font-weight:700}
+.route-server-status.ok{color:#15803d}
+.issue-box textarea{width:100%;min-height:65px;resize:vertical;padding:11px;font:14px inherit;border:1.5px solid #e2e8f0;border-radius:8px}
 </style>
 </head>
 <body>
@@ -85,7 +104,8 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 
 <div class="header">
   <h1>NCM B2B TRACKER</h1>
-  <p>Scan · Send · Receive · Live</p>
+  <p id="headerSub">Scan · Send · Receive · Live</p>
+  <div class="live-clock" id="liveClock">--:--:--<small>--/--/----</small></div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -100,8 +120,8 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 
   <div id="loginScreen" class="hidden">
     <div class="login-box">
-      <h2>Branch Login</h2>
-      <input type="password" id="passcodeInput" placeholder="0000" maxlength="10">
+      <h2>Branch / Driver Login</h2>
+      <input type="password" id="passcodeInput" placeholder="0000" maxlength="10" onkeydown="if(event.key==='Enter')login()">
       <button class="btn btn-red mt-10" onclick="login()">Login</button>
       <p style="text-align:center;margin-top:10px;font-size:12px;color:#64748b">Driver passcode: <b>7777</b></p>
     </div>
@@ -110,80 +130,123 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
   <div id="mainApp" class="hidden">
 
     <div class="nav-tabs">
-      <div class="nav-tab active" onclick="showTab('send')">Send</div>
-      <div class="nav-tab" onclick="showTab('receive')">Receive</div>
+      <div class="nav-tab active" id="mainNavTab" onclick="showTab('main')">-</div>
+      <div class="nav-tab" id="secondNavTab" onclick="showTab('second')">Receive</div>
+      <div class="nav-tab" id="allVansNavTab" onclick="showTab('vans')">All Vans</div>
     </div>
 
-    <div id="sendTab">
-      <div class="card">
-        <h4>Send Shipment</h4>
-        <label>Origin Branch</label>
-        <input type="text" id="originBranchDisplay" readonly>
-        <label>Destination Branch</label>
-        <select id="destBranch"></select>
-        <label>Van Number</label>
-        <input type="text" id="sendVanNo" placeholder="e.g. 843">
-        <label>Shipment IDs <span style="font-weight:400;color:#94a3b8">— scan as fast as you want</span></label>
-        <div class="chip-box" onclick="document.getElementById('sendInput').focus()">
-          <div class="chip-list" id="sendChipList">
-            <span class="chip-placeholder">Scan or paste shipment IDs here</span>
-          </div>
-          <textarea id="sendInput" style="position:absolute;opacity:0;height:0;width:0;left:0;top:0" oninput="handleSendInput(this)" onkeydown="sendKey(event)" onpaste="sendPaste(event)"></textarea>
-        </div>
-        <button class="scan-big" onclick="openCamera('send')">📷 Scan Barcodes</button>
-      </div>
-      <button class="btn btn-red mt-10" onclick="sendShipments()">SEND ALL (<span id="sendCount">0</span>)</button>
-    </div>
-
-    <div id="receiveTab" class="hidden">
-      <div class="card">
-        <h4>Receive Shipments</h4>
-
-        <div id="driverBranchBox" class="hidden">
-          <label style="color:#2563eb">DRIVER — Select Branch to Receive</label>
-          <div class="branch-grid" id="branchGrid"></div>
-        </div>
-
-        <div id="staffBranchBox" class="hidden">
-          <label>Receiving For Branch</label>
-          <div class="branch-display" id="staffBranchDisplay">-</div>
-        </div>
-
-        <div id="incomingVansSection" class="hidden mt-10">
-          <h4 style="font-size:13px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">🚐 Incoming Vans</h4>
-          <div id="incomingVansList"></div>
-        </div>
-
-        <label>Van Number</label>
-        <div class="flex">
-          <input type="text" id="recvVanNo" placeholder="e.g. 843" class="flex-1">
-          <button class="btn btn-blue btn-small" onclick="fetchPending()">Load List</button>
-        </div>
-        <button class="scan-big" onclick="openCamera('receive')">📷 Scan Barcodes</button>
-        <div style="margin-top:12px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <label style="margin:0">Scanned IDs <span style="font-weight:400;color:#94a3b8">— auto-sends after you pause</span></label>
-            <span style="font-size:12px;color:#64748b;font-weight:700" id="scanCount">0 items</span>
-          </div>
-          <div class="chip-box" style="min-height:70px" onclick="document.getElementById('recvInput').focus()">
-            <div class="chip-list" id="recvChipList">
-              <span class="chip-placeholder">Scanned shipment IDs appear here</span>
-            </div>
-            <textarea id="recvInput" style="position:absolute;opacity:0;height:0;width:0;left:0;top:0" oninput="handleRecvInput(this)" onkeydown="recvKey(event)" onpaste="recvPaste(event)"></textarea>
-          </div>
-        </div>
-        <button class="btn btn-grey mt-10" onclick="fetchPending()" style="padding:10px;font-size:12px">↻ Fetch Pending List from Sheet</button>
-      </div>
-      <button class="btn btn-green mt-10" id="recvBatchBtn" onclick="submitBatch()" disabled>RECEIVE ALL SCANNED (<span id="recvBtnCount">0</span>)</button>
-      <div id="pendingSection" class="hidden mt-15">
+    <!-- ============ BRANCH VIEW (unchanged) ============ -->
+    <div id="branchViewRoot" class="hidden">
+      <div id="sendTab">
         <div class="card">
-          <div class="pending-header">
-            <h4 style="margin:0">Pending in Sheet</h4>
-            <div class="pending-count" id="pendingCount">0</div>
+          <h4>Send Shipment</h4>
+          <label>Origin Branch</label>
+          <input type="text" id="originBranchDisplay" readonly>
+          <label>Destination Branch</label>
+          <select id="destBranch"></select>
+          <label>Van Number</label>
+          <input type="text" id="sendVanNo" placeholder="e.g. 843">
+          <label>Shipment IDs <span style="font-weight:400;color:#94a3b8">— scan as fast as you want</span></label>
+          <div class="chip-box" onclick="document.getElementById('sendInput').focus()">
+            <div class="chip-list" id="sendChipList">
+              <span class="chip-placeholder">Scan or paste shipment IDs here</span>
+            </div>
+            <textarea id="sendInput" style="position:absolute;opacity:0;height:0;width:0;left:0;top:0" oninput="handleSendInput(this)" onkeydown="sendKey(event)" onpaste="sendPaste(event)"></textarea>
           </div>
-          <div class="shipment-list" id="shipmentList"></div>
-          <button class="btn btn-blue mt-10" onclick="receiveAllSheet()" style="font-size:13px">Receive All from Sheet</button>
+          <button class="scan-big" onclick="openCamera('send')">📷 Scan Barcodes</button>
         </div>
+        <button class="btn btn-red mt-10" onclick="sendShipments()">SEND ALL (<span id="sendCount">0</span>)</button>
+      </div>
+
+      <div id="receiveTab" class="hidden">
+        <div class="card">
+          <h4>Receive Shipments</h4>
+          <div id="staffBranchBox">
+            <label>Receiving For Branch</label>
+            <div class="branch-display" id="staffBranchDisplay">-</div>
+          </div>
+          <div id="incomingVansSection" class="hidden mt-10">
+            <h4 style="font-size:13px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">🚐 Incoming Vans</h4>
+            <div id="incomingVansList"></div>
+          </div>
+          <label>Van Number</label>
+          <div class="flex">
+            <input type="text" id="recvVanNo" placeholder="e.g. 843" class="flex-1">
+            <button class="btn btn-blue btn-small" onclick="fetchPending()">Load List</button>
+          </div>
+          <button class="scan-big" onclick="openCamera('receive')">📷 Scan Barcodes</button>
+          <div style="margin-top:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <label style="margin:0">Scanned IDs <span style="font-weight:400;color:#94a3b8">— auto-sends after you pause</span></label>
+              <span style="font-size:12px;color:#64748b;font-weight:700" id="scanCount">0 items</span>
+            </div>
+            <div class="chip-box" style="min-height:70px" onclick="document.getElementById('recvInput').focus()">
+              <div class="chip-list" id="recvChipList">
+                <span class="chip-placeholder">Scanned shipment IDs appear here</span>
+              </div>
+              <textarea id="recvInput" style="position:absolute;opacity:0;height:0;width:0;left:0;top:0" oninput="handleRecvInput(this)" onkeydown="recvKey(event)" onpaste="recvPaste(event)"></textarea>
+            </div>
+          </div>
+          <button class="btn btn-grey mt-10" onclick="fetchPending()" style="padding:10px;font-size:12px">↻ Fetch Pending List from Sheet</button>
+        </div>
+        <button class="btn btn-green mt-10" id="recvBatchBtn" onclick="submitBatch()" disabled>RECEIVE ALL SCANNED (<span id="recvBtnCount">0</span>)</button>
+        <div id="pendingSection" class="hidden mt-15">
+          <div class="card">
+            <div class="pending-header">
+              <h4 style="margin:0">Pending in Sheet</h4>
+              <div class="pending-count" id="pendingCount">0</div>
+            </div>
+            <div class="shipment-list" id="shipmentList"></div>
+            <button class="btn btn-blue mt-10" onclick="receiveAllSheet()" style="font-size:13px">Receive All from Sheet</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ DRIVER VIEW (free check-in/check-out + rounds) ============ -->
+    <div id="driverViewRoot" class="hidden">
+
+      <div class="card" id="vanNoCard">
+        <h4>🚐 Enter Your Van Number</h4>
+        <p style="font-size:12px;color:#64748b;margin-bottom:10px">This locks once set — you won't need to re-enter it until you log out.</p>
+        <input type="text" id="driverVanNoInput" placeholder="e.g. 843">
+        <button class="btn btn-blue mt-10" onclick="confirmVanNo()">Confirm Van Number</button>
+      </div>
+
+      <div class="card hidden" id="driverCard">
+        <h4>📍 Check In / Check Out <span class="round-badge" id="roundBadge">Round 1</span></h4>
+        <p style="font-size:12px;color:#64748b;margin-bottom:6px">Van <b id="driverVanLabel">-</b></p>
+
+        <div id="branchPickBox">
+          <p id="branchPickPrompt" style="font-size:12px;color:#475569;margin-bottom:8px;font-weight:700">Select the branch you're at:</p>
+          <div class="branch-grid" id="branchPickGrid"></div>
+        </div>
+
+        <div id="driverStateBox" class="route-state hidden">
+          <h3 id="driverStateTitle">-</h3>
+          <p id="driverStateText">-</p>
+          <div class="timer-label" id="driverTimerLabel" style="display:none">HOLD TIME</div>
+          <div class="big-time" id="driverTimer" style="display:none">00:00</div>
+          <div class="route-actions">
+            <button class="btn btn-green" id="driverCheckInBtn" onclick="driverCheckIn()" disabled>CHECK IN</button>
+            <button class="btn btn-outline-red" id="driverCheckOutBtn" onclick="driverCheckOutStart()" disabled>CHECK OUT</button>
+          </div>
+          <div id="driverServerStatus" class="route-server-status" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div class="card issue-box">
+        <h4>📝 Report an Issue</h4>
+        <textarea id="driverIssueInput" placeholder="Example: Van delayed, road blocked, etc."></textarea>
+        <button class="btn btn-grey mt-10" onclick="submitDriverIssue()">Send Issue to Admin</button>
+      </div>
+    </div>
+
+    <!-- ============ ALL VANS — company-wide monitor (last tab) ============ -->
+    <div id="vansTab" class="hidden">
+      <div class="card">
+        <h4>🚐 All Vans — Live Company Board</h4>
+        <div id="vanBoardList"><div style="font-size:13px;color:#94a3b8;text-align:center;padding:8px">Loading…</div></div>
       </div>
     </div>
 
@@ -194,6 +257,7 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
   <span>Branch: <span class="branch" id="userBranch">-</span><span id="roleBadge"></span></span>
   <button class="btn btn-grey btn-small" onclick="logout()">Logout</button>
 </div>
+<div class="build-tag" id="buildTag"></div>
 
 <div class="cam-modal" id="camModal">
   <video id="camVideo" autoplay playsinline muted></video>
@@ -204,12 +268,12 @@ input[readonly]{background:#f8fafc;color:#2563eb;font-weight:700;border-color:#e
 </div>
 
 <script>
-const APP_VERSION = "v14-complete";
+const APP_VERSION = "v19-rounds-vanboard";
+const MIN_TRAVEL_SECONDS = 120;
 let SCRIPT_URL = localStorage.getItem('ncm_url') || "";
 let currentBranch = "";
 let currentRole = "";
 let currentDestinations = [];
-let driverBranches = [];
 let scanMode = "";
 let sendQueue = [];
 let recvQueue = [];
@@ -219,9 +283,20 @@ let isScanning = false;
 let recvTimer = null;
 let vanTimerInterval = null;
 let vanPollInterval = null;
+let vanBoardPollInterval = null;
 const RECV_AUTO_DELAY = 600;
 
+// Driver state
+let driverVanNo = localStorage.getItem('ncm_driver_van') || "";
+let driverState = null;
+let lastConfirmedAt = 0;
+let driverPollInterval = null;
+let driverTickInterval = null;
+let mainBranches = ["TINKUNE","CHABAHIL","NAYA BUSPARK","KALANKI","SATDOBATO","NEWROAD"];
+let pickingNextBranch = false;
+
 function init() {
+  document.getElementById('buildTag').textContent = APP_VERSION;
   const savedVersion = localStorage.getItem('ncm_version');
   if (savedVersion !== APP_VERSION) {
     localStorage.removeItem('ncm_session');
@@ -238,7 +313,6 @@ function init() {
       currentBranch = s.branch || "";
       currentRole = s.role || "branch";
       currentDestinations = s.destinations || [];
-      driverBranches = s.branches || [];
       showApp();
       return;
     } catch(e){ localStorage.removeItem('ncm_session'); }
@@ -286,15 +360,11 @@ async function login() {
       if (res.role === 'branch') {
         currentBranch = res.branch;
         currentDestinations = res.destinations || [];
-      } else if (res.role === 'driver') {
+      } else {
         currentBranch = "";
-        driverBranches = res.branches || [];
       }
       localStorage.setItem('ncm_session', JSON.stringify({
-        branch: currentBranch,
-        role: currentRole,
-        destinations: currentDestinations,
-        branches: driverBranches
+        branch: currentBranch, role: currentRole, destinations: currentDestinations
       }));
       showApp();
       toast('Welcome ' + (currentBranch || 'Driver'), 'ok');
@@ -308,82 +378,372 @@ function showApp() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('mainApp').classList.remove('hidden');
   document.getElementById('statusBar').classList.remove('hidden');
-  document.getElementById('userBranch').innerText = currentBranch || 'DRIVER';
-
-  const badge = document.getElementById('roleBadge');
-  const driverBox = document.getElementById('driverBranchBox');
-  const staffBox = document.getElementById('staffBranchBox');
 
   if (currentRole === 'driver') {
-    badge.className = 'driver-badge';
-    badge.innerText = 'DRIVER';
-    driverBox.classList.remove('hidden');
-    staffBox.classList.add('hidden');
-
-    const grid = document.getElementById('branchGrid');
-    grid.innerHTML = "";
-    driverBranches.forEach((b, idx) => {
-      const div = document.createElement('div');
-      div.className = 'branch-card' + (idx === 0 ? ' selected' : '');
-      div.innerHTML = '<span class="branch-icon">🏢</span>' + b;
-      div.onclick = function() {
-        document.querySelectorAll('.branch-card').forEach(c => c.classList.remove('selected'));
-        div.classList.add('selected');
-        currentBranch = b;
-        toast('Receiving for: ' + b, 'ok');
-      };
-      grid.appendChild(div);
-    });
-    if (driverBranches.length) currentBranch = driverBranches[0];
-
+    document.getElementById('userBranch').innerText = 'DRIVER';
+    document.getElementById('roleBadge').className = 'driver-badge';
+    document.getElementById('roleBadge').innerText = 'DRIVER';
+    document.getElementById('headerSub').textContent = 'Check In · Check Out · Live';
+    document.getElementById('branchViewRoot').classList.add('hidden');
+    document.getElementById('driverViewRoot').classList.remove('hidden');
+    document.getElementById('mainNavTab').textContent = 'Check In/Out';
+    document.getElementById('secondNavTab').classList.add('hidden');
+    showTab('main');
+    initDriverView();
   } else {
-    badge.className = '';
-    badge.innerText = '';
-    driverBox.classList.add('hidden');
-    staffBox.classList.remove('hidden');
+    document.getElementById('userBranch').innerText = currentBranch;
+    document.getElementById('roleBadge').className = '';
+    document.getElementById('roleBadge').innerText = '';
+    document.getElementById('headerSub').textContent = 'Scan · Send · Receive · Live';
+    document.getElementById('driverViewRoot').classList.add('hidden');
+    document.getElementById('branchViewRoot').classList.remove('hidden');
+    document.getElementById('mainNavTab').textContent = 'Send';
+    document.getElementById('secondNavTab').classList.remove('hidden');
+    document.getElementById('secondNavTab').textContent = 'Receive';
+    showTab('main');
     document.getElementById('staffBranchDisplay').innerText = currentBranch;
+    const destSel = document.getElementById('destBranch');
+    destSel.innerHTML = "";
+    currentDestinations.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d; opt.innerText = d;
+      destSel.appendChild(opt);
+    });
+    document.getElementById('originBranchDisplay').value = currentBranch;
   }
-
-  const destSel = document.getElementById('destBranch');
-  destSel.innerHTML = "";
-  currentDestinations.forEach(d => {
-    const opt = document.createElement('option');
-    opt.value = d; opt.innerText = d;
-    destSel.appendChild(opt);
-  });
-  document.getElementById('originBranchDisplay').value = currentRole === 'driver' ? 'DRIVER' : currentBranch;
+  startVanBoardPolling();
 }
 
 function showTab(tab) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('sendTab').classList.toggle('hidden', tab !== 'send');
-  document.getElementById('receiveTab').classList.toggle('hidden', tab !== 'receive');
-  if (tab === 'receive') startVanPolling();
-  else stopVanPolling();
+  if (event && event.target) event.target.classList.add('active');
+  else document.getElementById(tab === 'vans' ? 'allVansNavTab' : tab === 'second' ? 'secondNavTab' : 'mainNavTab').classList.add('active');
+
+  document.getElementById('vansTab').classList.toggle('hidden', tab !== 'vans');
+
+  if (currentRole === 'driver') {
+    document.getElementById('driverViewRoot').classList.toggle('hidden', tab !== 'main');
+  } else {
+    document.getElementById('branchViewRoot').classList.toggle('hidden', tab === 'vans');
+    document.getElementById('sendTab').classList.toggle('hidden', tab !== 'main');
+    document.getElementById('receiveTab').classList.toggle('hidden', tab !== 'second');
+    if (tab === 'second') startVanPolling(); else stopVanPolling();
+  }
+  if (tab === 'vans') loadVanBoard();
 }
 
 function logout() {
   localStorage.removeItem('ncm_session');
+  localStorage.removeItem('ncm_driver_van');
   location.reload();
 }
 
 function getActiveBranch() {
-  if (currentRole === 'driver') {
-    const selected = document.querySelector('.branch-card.selected');
-    return selected ? selected.innerText.replace('🏢', '').trim() : currentBranch;
-  }
   return currentBranch;
 }
 
-/* ===================== INCOMING VANS ===================== */
+/* ===================== ALL VANS — company board ===================== */
+
+function startVanBoardPolling() {
+  loadVanBoard();
+  if (vanBoardPollInterval) clearInterval(vanBoardPollInterval);
+  vanBoardPollInterval = setInterval(loadVanBoard, 8000);
+}
+
+async function loadVanBoard() {
+  try {
+    const res = await apiGet({ action: 'getVanBoard' });
+    if (!res.success) return;
+    renderVanBoard(res.data || []);
+  } catch(e) {}
+}
+
+function renderVanBoard(vans) {
+  const list = document.getElementById('vanBoardList');
+  if (!list) return;
+  if (!vans.length) {
+    list.innerHTML = '<div style="font-size:13px;color:#94a3b8;text-align:center;padding:8px">No van activity yet today.</div>';
+    return;
+  }
+  const sorted = vans.slice().sort((a,b) => {
+    if (a.status === 'moving' && b.status !== 'moving') return -1;
+    if (a.status !== 'moving' && b.status === 'moving') return 1;
+    return 0;
+  });
+  list.innerHTML = sorted.map(v => {
+    const cls = v.status === 'moving' ? (v.isLate ? 'red' : 'blue') : 'green';
+    const time = fmtSeconds(v.elapsedSeconds);
+    if (v.status === 'moving') {
+      return '<div class="van-card ' + cls + '">' +
+        '<div class="van-header"><span class="van-title">Van ' + escapeHtml(v.vanNo) + '</span><span class="round-badge">Round ' + v.round + '</span></div>' +
+        '<div class="van-meta">' + escapeHtml(v.fromBranch) + ' → ' + escapeHtml(v.toBranch) + '</div>' +
+        '<div class="van-timer" style="margin-top:6px">' + time + '</div>' +
+        '</div>';
+    }
+    return '<div class="van-card ' + cls + '">' +
+      '<div class="van-header"><span class="van-title">Van ' + escapeHtml(v.vanNo) + '</span><span class="round-badge">Round ' + v.round + '</span></div>' +
+      '<div class="van-meta">At ' + escapeHtml(v.branch) + '</div>' +
+      '<div class="van-timer" style="margin-top:6px">' + time + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+/* ===================== DRIVER: VAN NO + CHECK IN/OUT ===================== */
+
+function initDriverView() {
+  if (driverVanNo) {
+    document.getElementById('vanNoCard').classList.add('hidden');
+    document.getElementById('driverCard').classList.remove('hidden');
+    document.getElementById('driverVanLabel').textContent = driverVanNo;
+  }
+  loadDestinationConfig();
+  startDriverPolling();
+}
+
+function confirmVanNo() {
+  const val = document.getElementById('driverVanNoInput').value.trim();
+  if (!val) return toast('Enter a van number', 'bad');
+  driverVanNo = val;
+  localStorage.setItem('ncm_driver_van', val);
+  document.getElementById('vanNoCard').classList.add('hidden');
+  document.getElementById('driverCard').classList.remove('hidden');
+  document.getElementById('driverVanLabel').textContent = driverVanNo;
+  toast('Van ' + driverVanNo + ' confirmed', 'ok');
+  startDriverPolling();
+}
+
+async function loadDestinationConfig() {
+  try {
+    const res = await apiGet({ action: 'getDestinations', branch: 'TINKUNE' });
+    if (res.success && res.mainBranches) mainBranches = res.mainBranches;
+  } catch(e) {}
+}
+
+function startDriverPolling() {
+  if (!driverVanNo) return;
+  loadDriverState();
+  if (driverPollInterval) clearInterval(driverPollInterval);
+  driverPollInterval = setInterval(loadDriverState, 10000);
+  if (driverTickInterval) clearInterval(driverTickInterval);
+  driverTickInterval = setInterval(tickDriverClock, 1000);
+}
+
+async function loadDriverState() {
+  if (!driverVanNo) return false;
+  try {
+    const res = await apiGet({ action: 'getDriverState', vanNo: driverVanNo });
+    if (res && res.success && res.state) {
+      const recentlyConfirmed = (Date.now() - lastConfirmedAt) < 15000;
+      const looksLikeDowngrade = driverState && driverState.started && !res.state.started;
+      if (recentlyConfirmed && looksLikeDowngrade) return true;
+      driverState = res.state;
+      renderDriverState();
+      return true;
+    }
+  } catch(e) {
+    setDriverServerStatus('Cannot read status from Apps Script.', 'bad');
+  }
+  return false;
+}
+
+function normalizedDriverStatus(state) {
+  return String(state && state.status || '').toUpperCase().replace(/[\s-]+/g, '_');
+}
+
+function setDriverServerStatus(message, kind) {
+  const el = document.getElementById('driverServerStatus');
+  if (!el) return;
+  el.textContent = message || '';
+  el.className = 'route-server-status' + (kind ? ' ' + kind : '');
+}
+
+function renderBranchPickGrid(options, onPick) {
+  const grid = document.getElementById('branchPickGrid');
+  grid.innerHTML = options.map(b =>
+    '<button type="button" class="branch-card" data-b="' + escapeHtml(b) + '">' + escapeHtml(b) + '</button>'
+  ).join('');
+  grid.querySelectorAll('.branch-card').forEach(btn => {
+    btn.onclick = () => onPick(btn.dataset.b);
+  });
+}
+
+function renderInitialBranchPick() {
+  document.getElementById('branchPickPrompt').textContent = "Select the branch you're at:";
+  document.getElementById('branchPickBox').classList.remove('hidden');
+  document.getElementById('driverStateBox').classList.add('hidden');
+  renderBranchPickGrid(mainBranches, (b) => driverDoCheckIn(b));
+}
+
+async function renderNextBranchPick() {
+  pickingNextBranch = true;
+  document.getElementById('branchPickPrompt').textContent = "Where are you heading?";
+  document.getElementById('branchPickBox').classList.remove('hidden');
+  let options = mainBranches;
+  try {
+    const res = await apiGet({ action: 'getDestinations', branch: driverState.branch });
+    if (res.success && res.destinations && res.destinations.length) options = res.destinations;
+  } catch(e) {}
+  renderBranchPickGrid(options, (b) => driverDoCheckOut(b));
+}
+
+function renderDriverState() {
+  const box = document.getElementById('driverStateBox');
+  const pickBox = document.getElementById('branchPickBox');
+  const title = document.getElementById('driverStateTitle');
+  const text = document.getElementById('driverStateText');
+  const checkInBtn = document.getElementById('driverCheckInBtn');
+  const checkOutBtn = document.getElementById('driverCheckOutBtn');
+  const timer = document.getElementById('driverTimer');
+  const timerLabel = document.getElementById('driverTimerLabel');
+  const roundBadge = document.getElementById('roundBadge');
+
+  roundBadge.textContent = 'Round ' + (driverState && driverState.round ? driverState.round : 1);
+
+  if (!driverState || !driverState.started) {
+    box.classList.add('hidden');
+    if (!pickingNextBranch) renderInitialBranchPick();
+    return;
+  }
+
+  const status = normalizedDriverStatus(driverState);
+
+  if (status === 'AT_STATION') {
+    pickBox.classList.add('hidden');
+    pickingNextBranch = false;
+    box.classList.remove('hidden');
+    box.className = 'route-state';
+    title.textContent = 'At ' + driverState.branch;
+    text.textContent = driverState.lastMissed
+      ? (driverState.lastMissed === 'None' ? 'Previous round: all branches visited. Check out when leaving.' : 'Previous round missed: ' + driverState.lastMissed + '. Check out when leaving.')
+      : 'Check out when leaving.';
+    checkInBtn.textContent = 'CHECK IN COMPLETE';
+    checkInBtn.disabled = true;
+    checkOutBtn.textContent = 'CHECK OUT FROM ' + driverState.branch;
+    checkOutBtn.disabled = false;
+    timerLabel.textContent = 'HOLD TIME AT ' + driverState.branch;
+    timerLabel.style.display = 'block';
+    timer.style.display = 'block';
+    timer.textContent = fmtSeconds(driverState.elapsedSeconds);
+    timer.className = 'big-time ' + ((Number(driverState.elapsedSeconds) || 0) >= 600 ? 'late' : 'on-time');
+  } else if (status === 'MOVING') {
+    box.classList.remove('hidden');
+    box.className = 'route-state moving';
+    title.textContent = 'Heading to ' + driverState.nextBranch;
+    text.textContent = 'Check in once you arrive.';
+    const travelReady = (Number(driverState.elapsedSeconds) || 0) >= MIN_TRAVEL_SECONDS;
+    checkInBtn.textContent = travelReady
+      ? 'CHECK IN AT ' + driverState.nextBranch
+      : 'CHECK IN OPENS IN ' + fmtSeconds(MIN_TRAVEL_SECONDS - (Number(driverState.elapsedSeconds) || 0));
+    checkInBtn.disabled = !travelReady;
+    checkOutBtn.textContent = 'CHECK OUT — CHECK IN FIRST';
+    checkOutBtn.disabled = true;
+    timerLabel.textContent = 'TRAVEL TIME TO ' + driverState.nextBranch;
+    timerLabel.style.display = 'block';
+    timer.style.display = 'block';
+    timer.textContent = fmtSeconds(driverState.elapsedSeconds);
+    timer.className = 'big-time ' + ((Number(driverState.elapsedSeconds) || 0) >= 600 ? 'late' : 'on-time');
+    pickBox.classList.add('hidden');
+    pickingNextBranch = false;
+  }
+}
+
+function tickDriverClock() {
+  if (driverState && driverState.started) {
+    driverState.elapsedSeconds = (Number(driverState.elapsedSeconds) || 0) + 1;
+    renderDriverState();
+  }
+}
+
+function fmtSeconds(total) {
+  total = Math.max(0, Math.floor(Number(total) || 0));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return (h ? String(h).padStart(2,'0') + ':' : '') + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function driverCheckIn() {
+  if (!driverState || normalizedDriverStatus(driverState) !== 'MOVING') return;
+  driverDoCheckIn(driverState.nextBranch);
+}
+
+function driverCheckOutStart() {
+  if (!driverState || normalizedDriverStatus(driverState) !== 'AT_STATION') return;
+  renderNextBranchPick();
+}
+
+async function driverDoCheckIn(branch) {
+  const previous = driverState;
+  driverState = { vanNo: driverVanNo, started: true, branch: branch, nextBranch: null, status: 'AT_STATION', elapsedSeconds: 0, round: (previous && previous.round) || 1 };
+  document.getElementById('branchPickBox').classList.add('hidden');
+  renderDriverState();
+  setDriverServerStatus('Saving check in to Google Sheets…');
+  try {
+    const res = await apiPost({ action: 'driverCheckIn', vanNo: driverVanNo, branch: branch });
+    if (!res.success) {
+      driverState = previous;
+      renderDriverState();
+      setDriverServerStatus('Apps Script: ' + (res.error || 'check-in failed') + ' — reverted.', 'bad');
+      return toast(res.error || 'Check-in failed', 'bad');
+    }
+    toast(res.message, 'ok');
+    if (res.state) { driverState = Object.assign({}, res.state); driverState.started = true; driverState.status = 'AT_STATION'; if (!driverState.branch) driverState.branch = branch; }
+    lastConfirmedAt = Date.now();
+    setDriverServerStatus('Saved. Hold timer running at ' + driverState.branch + '.', 'ok');
+    renderDriverState();
+    loadVanBoard();
+  } catch(e) {
+    setDriverServerStatus('Network error — will retry automatically.', 'bad');
+    toast('Network error', 'warn');
+  }
+}
+
+async function driverDoCheckOut(nextBranch) {
+  const previous = driverState;
+  const atBranch = driverState.branch;
+  driverState = { vanNo: driverVanNo, started: true, branch: atBranch, nextBranch: nextBranch, status: 'MOVING', elapsedSeconds: 0, round: previous.round || 1 };
+  document.getElementById('branchPickBox').classList.add('hidden');
+  pickingNextBranch = false;
+  renderDriverState();
+  setDriverServerStatus('Saving check out to Google Sheets…');
+  try {
+    const res = await apiPost({ action: 'driverCheckOut', vanNo: driverVanNo, nextBranch: nextBranch });
+    if (!res.success) {
+      driverState = previous;
+      renderDriverState();
+      setDriverServerStatus('Apps Script: ' + (res.error || 'check-out failed') + ' — reverted.', 'bad');
+      return toast(res.error || 'Check-out failed', 'bad');
+    }
+    toast(res.message, 'ok');
+    if (res.state) { driverState = Object.assign({}, res.state); driverState.started = true; driverState.status = 'MOVING'; if (!driverState.nextBranch) driverState.nextBranch = nextBranch; }
+    lastConfirmedAt = Date.now();
+    setDriverServerStatus('Saved. Heading to ' + driverState.nextBranch + '.', 'ok');
+    renderDriverState();
+    loadVanBoard();
+  } catch(e) {
+    setDriverServerStatus('Network error — will retry automatically.', 'bad');
+    toast('Network error', 'warn');
+  }
+}
+
+async function submitDriverIssue() {
+  const input = document.getElementById('driverIssueInput');
+  const issue = input.value.trim();
+  if (!issue) return toast('Write the issue first', 'bad');
+  try {
+    const res = await apiPost({ action:'submitIssue', issue:issue, role:'driver', vanNo:driverVanNo, reportedBy:'Van ' + driverVanNo });
+    toast(res.message || res.error, res.success ? 'ok' : 'bad');
+    if (res.success) input.value = '';
+  } catch(e) { toast('Network error', 'bad'); }
+}
+
+/* ===================== BRANCH: INCOMING VANS ===================== */
 
 function startVanPolling() {
   loadIncomingVans();
   if (vanPollInterval) clearInterval(vanPollInterval);
   vanPollInterval = setInterval(loadIncomingVans, 10000);
 }
-
 function stopVanPolling() {
   if (vanPollInterval) clearInterval(vanPollInterval);
   stopVanTimers();
@@ -394,18 +754,11 @@ async function loadIncomingVans() {
   if (!branch) return;
   try {
     const res = await apiGet({ action: "getIncomingVans", branch: branch });
-    if (!res.success) {
-      toast(res.error || 'Server error', 'bad');
-      return;
-    }
+    if (!res.success) { toast(res.error || 'Server error', 'bad'); return; }
     const vans = res.data || [];
     const section = document.getElementById('incomingVansSection');
     const list = document.getElementById('incomingVansList');
-    if (vans.length === 0) {
-      section.classList.add('hidden');
-      stopVanTimers();
-      return;
-    }
+    if (vans.length === 0) { section.classList.add('hidden'); stopVanTimers(); return; }
     section.classList.remove('hidden');
     list.innerHTML = vans.map((v, idx) => {
       const min = safeNum(v.elapsedMinutes);
@@ -421,26 +774,12 @@ async function loadIncomingVans() {
       </div>`;
     }).join('');
     startVanTimers();
-  } catch(e) {
-    toast('Failed to load vans: ' + e.message, 'bad');
-  }
+  } catch(e) { toast('Failed to load vans: ' + e.message, 'bad'); }
 }
 
-function safeNum(v) {
-  var n = parseInt(v);
-  return isNaN(n) ? 0 : n;
-}
-
-function escapeHtml(text) {
-  var div = document.createElement('div');
-  div.appendChild(document.createTextNode(text));
-  return div.innerHTML;
-}
-
-function pad(n) {
-  var num = safeNum(n);
-  return String(num).padStart(2, '0');
-}
+function safeNum(v) { var n = parseInt(v); return isNaN(n) ? 0 : n; }
+function escapeHtml(text) { var div = document.createElement('div'); div.appendChild(document.createTextNode(text)); return div.innerHTML; }
+function pad(n) { var num = safeNum(n); return String(num).padStart(2, '0'); }
 
 function startVanTimers() {
   if (vanTimerInterval) clearInterval(vanTimerInterval);
@@ -450,21 +789,16 @@ function startVanTimers() {
       let sec = safeNum(el.dataset.sec);
       sec++;
       if (sec >= 60) { sec = 0; min++; }
-      el.dataset.min = min;
-      el.dataset.sec = sec;
+      el.dataset.min = min; el.dataset.sec = sec;
       el.innerText = pad(min) + ':' + pad(sec);
       const card = el.closest('.van-card');
       if (min >= 20 && card && card.classList.contains('green')) {
-        card.classList.remove('green');
-        card.classList.add('red');
+        card.classList.remove('green'); card.classList.add('red');
       }
     });
   }, 1000);
 }
-
-function stopVanTimers() {
-  if (vanTimerInterval) clearInterval(vanTimerInterval);
-}
+function stopVanTimers() { if (vanTimerInterval) clearInterval(vanTimerInterval); }
 
 function fillVanNo(van) {
   document.getElementById('recvVanNo').value = van;
@@ -476,10 +810,7 @@ function fillVanNo(van) {
 
 function renderChips(containerId, queue, placeholder) {
   const box = document.getElementById(containerId);
-  if (queue.length === 0) {
-    box.innerHTML = '<span class="chip-placeholder">' + placeholder + '</span>';
-    return;
-  }
+  if (queue.length === 0) { box.innerHTML = '<span class="chip-placeholder">' + placeholder + '</span>'; return; }
   box.innerHTML = queue.map(id =>
     '<span class="chip">' + id + '<button class="x" onclick="removeChip(\'' + containerId + '\',\'' + id + '\')">×</button></span>'
   ).join('');
@@ -502,11 +833,8 @@ function addChip(id, containerId, queueArray, placeholder) {
   if (!id || queueArray.includes(id)) return false;
   queueArray.push(id);
   renderChips(containerId === 'sendChipList' ? 'sendChipList' : 'recvChipList', queueArray, placeholder);
-  if (containerId === 'sendChipList') {
-    document.getElementById('sendCount').innerText = sendQueue.length;
-  } else {
-    updateRecvBtn();
-  }
+  if (containerId === 'sendChipList') document.getElementById('sendCount').innerText = sendQueue.length;
+  else updateRecvBtn();
   if (navigator.vibrate) navigator.vibrate(40);
   return true;
 }
@@ -530,8 +858,7 @@ function updateRecvBtn() {
 function handleSendInput(el) {
   const val = el.value;
   if (val.includes('\n')) {
-    const parts = val.split('\n');
-    parts.forEach(p => { if (p.trim()) addChip(p, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here'); });
+    val.split('\n').forEach(p => { if (p.trim()) addChip(p, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here'); });
     el.value = "";
   }
 }
@@ -545,8 +872,7 @@ function sendKey(e) {
 function sendPaste(e) {
   setTimeout(() => {
     const val = e.target.value;
-    const parts = val.split(/[\n,]+/);
-    parts.forEach(p => { if (p.trim()) addChip(p, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here'); });
+    val.split(/[\n,]+/).forEach(p => { if (p.trim()) addChip(p, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here'); });
     e.target.value = "";
   }, 10);
 }
@@ -560,10 +886,7 @@ async function sendShipments() {
   toast('Sending ' + sendQueue.length + ' shipments...', 'ok');
   try {
     const res = await apiPost({
-      action: "sendBatch",
-      origin: currentRole === 'driver' ? 'DRIVER' : currentBranch,
-      destination: dest,
-      vanNo: van,
+      action: "sendBatch", origin: currentBranch, destination: dest, vanNo: van,
       shipments: sendQueue.map(id => ({ shipmentId: id }))
     });
     if (res.success) {
@@ -589,8 +912,7 @@ async function sendShipments() {
 function handleRecvInput(el) {
   const val = el.value;
   if (val.includes('\n')) {
-    const parts = val.split('\n');
-    parts.forEach(p => { if (p.trim()) pushRecv(p); });
+    val.split('\n').forEach(p => { if (p.trim()) pushRecv(p); });
     el.value = "";
   }
   scheduleRecvFlush();
@@ -606,8 +928,7 @@ function recvKey(e) {
 function recvPaste(e) {
   setTimeout(() => {
     const val = e.target.value;
-    const parts = val.split(/[\n,]+/);
-    parts.forEach(p => { if (p.trim()) pushRecv(p); });
+    val.split(/[\n,]+/).forEach(p => { if (p.trim()) pushRecv(p); });
     e.target.value = "";
     scheduleRecvFlush();
   }, 10);
@@ -624,9 +945,7 @@ function pushRecv(raw) {
 
 function scheduleRecvFlush() {
   clearTimeout(recvTimer);
-  recvTimer = setTimeout(() => {
-    if (recvQueue.length > 0) submitBatch();
-  }, RECV_AUTO_DELAY);
+  recvTimer = setTimeout(() => { if (recvQueue.length > 0) submitBatch(); }, RECV_AUTO_DELAY);
 }
 
 async function submitBatch() {
@@ -683,10 +1002,7 @@ async function receiveAllSheet() {
   try {
     const res = await apiPost({ action: "receiveAll", branch: branch, vanNo: van });
     toast(res.message, res.success ? 'ok' : 'bad');
-    if (res.success) {
-      fetchPending();
-      loadIncomingVans();
-    }
+    if (res.success) { fetchPending(); loadIncomingVans(); }
   } catch(e) { toast('Error', 'bad'); }
 }
 
@@ -728,44 +1044,30 @@ async function openCamera(mode) {
 function closeCamera() {
   isScanning = false;
   document.getElementById('camModal').classList.remove('active');
-  if (camStream) {
-    camStream.getTracks().forEach(t => t.stop());
-    camStream = null;
-  }
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
 }
 
 let lastScanTime = 0;
 async function tick() {
   if (!isScanning) return;
   const video = document.getElementById('camVideo');
-  if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-    requestAnimationFrame(tick);
-    return;
-  }
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) { requestAnimationFrame(tick); return; }
   const now = Date.now();
-  if (now - lastScanTime < 350) {
-    requestAnimationFrame(tick);
-    return;
-  }
+  if (now - lastScanTime < 350) { requestAnimationFrame(tick); return; }
   const canvas = document.getElementById('camCanvas');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   let code = null;
   if (barcodeDetector) {
-    try {
-      const codes = await barcodeDetector.detect(canvas);
-      if (codes.length) code = codes[0].rawValue;
-    } catch(e) {}
+    try { const codes = await barcodeDetector.detect(canvas); if (codes.length) code = codes[0].rawValue; }
+    catch(e) {}
   }
   if (code) {
     lastScanTime = now;
     const clean = cleanId(code);
     if (scanMode === 'send') {
-      if (addChip(clean, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here')) {
-        toast('Scanned: ' + clean, 'ok');
-      }
+      if (addChip(clean, 'sendChipList', sendQueue, 'Scan or paste shipment IDs here')) toast('Scanned: ' + clean, 'ok');
     } else {
       if (!recvQueue.includes(clean)) {
         recvQueue.push(clean);
@@ -779,6 +1081,16 @@ async function tick() {
   requestAnimationFrame(tick);
 }
 
+/* ===================== HELPERS ===================== */
+
+function updateLiveClock() {
+  const now = new Date();
+  const opts = { timeZone:'Asia/Kathmandu', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false };
+  const dateOpts = { timeZone:'Asia/Kathmandu', day:'2-digit', month:'2-digit', year:'numeric' };
+  const el = document.getElementById('liveClock');
+  if (el) el.innerHTML = now.toLocaleTimeString('en-GB', opts) + '<small>' + now.toLocaleDateString('en-GB', dateOpts) + '</small>';
+}
+
 function toast(msg, type) {
   const t = document.getElementById('toast');
   t.innerText = msg;
@@ -788,6 +1100,8 @@ function toast(msg, type) {
   t._tm = setTimeout(() => t.style.display = 'none', 3000);
 }
 
+updateLiveClock();
+setInterval(updateLiveClock, 1000);
 init();
 </script>
 </body>
