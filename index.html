@@ -13,6 +13,7 @@ body{font-family:Segoe UI,Arial,sans-serif;background:#f8fafc;color:#1e293b;min-
 .live-clock{position:absolute;right:14px;top:14px;text-align:right;color:#2563eb;font-weight:800;font-size:12px;line-height:1.3}
 .live-clock small{display:block;color:#64748b;font-size:9px;font-weight:600}
 .build-tag{position:fixed;bottom:56px;right:8px;font-size:9px;color:#cbd5e1;z-index:50;font-family:monospace}
+.offline-badge{position:fixed;top:52px;left:0;right:0;background:#78350f;color:#fef3c7;text-align:center;font-size:11px;font-weight:800;letter-spacing:.05em;padding:5px;z-index:1500}
 .container{padding:15px;max-width:520px;margin:0 auto}
 .login-box{background:#fff;border-radius:14px;padding:28px 20px;margin-top:20px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .login-box h2{text-align:center;color:#1e293b;margin-bottom:20px;font-size:18px;font-weight:700}
@@ -48,7 +49,7 @@ input[readonly],input:disabled{background:#f8fafc;color:#2563eb;font-weight:700;
 .chip-placeholder{color:#94a3b8;font-size:13px;font-style:italic}
 @keyframes popIn{from{transform:scale(0.8);opacity:0}to{transform:scale(1);opacity:1}}
 .branch-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
-.branch-card{background:#fff;border:2px solid #e2e8f0;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;transition:all 0.15s;font-size:13px;font-weight:700;color:#475569;touch-action:manipulation;pointer-events:auto;user-select:none}
+.branch-card{background:#fff;border:2px solid #e2e8f0;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;transition:all 0.15s;font-size:13px;font-weight:700;color:#475569}
 .branch-card:active{transform:scale(0.96)}
 .branch-card.selected{background:#2563eb;border-color:#2563eb;color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.25)}
 .branch-display{background:#f0f9ff;border:2px solid #2563eb;border-radius:10px;padding:14px;text-align:center;font-size:16px;font-weight:800;color:#2563eb;margin-bottom:12px}
@@ -100,7 +101,6 @@ input[readonly],input:disabled{background:#f8fafc;color:#2563eb;font-weight:700;
 .route-server-status{font-size:11px;color:#64748b;margin-top:9px;min-height:15px;text-align:center}
 .route-server-status.bad{color:#dc2626;font-weight:700}
 .route-server-status.ok{color:#15803d}
-.route-server-status.pending{color:#a16207;font-weight:700}
 .issue-box textarea{width:100%;min-height:65px;resize:vertical;padding:11px;font:14px inherit;border:1.5px solid #e2e8f0;border-radius:8px}
 </style>
 </head>
@@ -112,6 +112,7 @@ input[readonly],input:disabled{background:#f8fafc;color:#2563eb;font-weight:700;
   <h1>NCM B2B TRACKER</h1>
   <p id="headerSub">Scan · Send · Receive · Live</p>
   <div class="live-clock" id="liveClock">--:--:--<small>--/--/----</small></div>
+  <div class="offline-badge hidden" id="offlineBadge">OFFLINE</div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -139,6 +140,11 @@ input[readonly],input:disabled{background:#f8fafc;color:#2563eb;font-weight:700;
       <div class="nav-tab active" id="mainNavTab" onclick="showTab('main')">-</div>
       <div class="nav-tab" id="secondNavTab" onclick="showTab('second')">Receive</div>
       <div class="nav-tab" id="allVansNavTab" onclick="showTab('vans')">All Vans</div>
+    </div>
+
+    <!-- ============ BRANCH VIEW (unchanged) ============ -->
+        <button class="btn btn-red mt-10" onclick="sendShipments()">SEND ALL (<span id="sendCount">0</span>)</button>
+      </div>
     </div>
 
     <div id="receiveTab" class="hidden">
@@ -203,10 +209,7 @@ input[readonly],input:disabled{background:#f8fafc;color:#2563eb;font-weight:700;
             <textarea id="sendInput" style="position:absolute;opacity:0;height:0;width:0;left:0;top:0" oninput="handleSendInput(this)" onkeydown="sendKey(event)" onpaste="sendPaste(event)"></textarea>
           </div>
           <button class="scan-big" onclick="openCamera('send')">📷 Scan Barcodes</button>
-          <button class="btn btn-red mt-10" onclick="sendShipments()">SEND ALL (<span id="sendCount">0</span>)</button>
         </div>
-      </div>
-    </div>
 
     <!-- ============ DRIVER VIEW (free check-in/check-out + rounds) ============ -->
     <div id="driverViewRoot" class="hidden">
@@ -273,7 +276,7 @@ input[readonly],input:disabled{background:#f8fafc;color:#2563eb;font-weight:700;
 </div>
 
 <script>
-const APP_VERSION = "v20-offline-driver-outbox";
+const APP_VERSION = "v20-offline-sync";
 const MIN_TRAVEL_SECONDS = 120;
 let SCRIPT_URL = localStorage.getItem('ncm_url') || "";
 let currentBranch = "";
@@ -299,161 +302,16 @@ let driverPollInterval = null;
 let driverTickInterval = null;
 let mainBranches = ["TINKUNE","CHABAHIL","NAYA BUSPARK","KALANKI","SATDOBATO","NEWROAD"];
 let pickingNextBranch = false;
-let checkoutOptions = [];
-let checkoutInFlight = false;
-const DRIVER_OUTBOX_KEY = 'ncm_driver_outbox_v1';
-const DRIVER_STATE_CACHE_KEY = 'ncm_driver_state_cache_v1';
-let driverOutbox = loadDriverOutbox();
-let driverSyncInFlight = false;
 
-function loadDriverOutbox() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(DRIVER_OUTBOX_KEY) || '[]');
-    return Array.isArray(parsed) ? parsed : [];
-  } catch(e) { return []; }
-}
-
-function saveDriverOutbox() {
-  localStorage.setItem(DRIVER_OUTBOX_KEY, JSON.stringify(driverOutbox));
-}
-
-function cacheDriverState() {
-  if (!driverState || !driverVanNo) return;
-  localStorage.setItem(DRIVER_STATE_CACHE_KEY, JSON.stringify({
-    vanNo: driverVanNo, state: driverState, savedAt: Date.now()
-  }));
-}
-
-function restoreDriverStateCache() {
-  try {
-    const cached = JSON.parse(localStorage.getItem(DRIVER_STATE_CACHE_KEY) || 'null');
-    if (cached && String(cached.vanNo) === String(driverVanNo) && cached.state) {
-      driverState = cached.state;
-    }
-  } catch(e) {}
-}
-
-function pendingDriverOperations() {
-  return driverOutbox.filter(op => String(op.vanNo) === String(driverVanNo));
-}
-
-function optimisticStateForOperation(state, op) {
-  const data = op.data || {};
-  if (op.action === 'driverCheckIn') {
-    return {
-      vanNo: data.vanNo, started: true, branch: data.branch,
-      nextBranch: null, status: 'AT_STATION',
-      elapsedSeconds: state && state.status === 'AT_STATION' ? (Number(state.elapsedSeconds) || 0) : 0,
-      round: (state && state.round) || 1
-    };
-  }
-  if (op.action === 'driverCheckOut') {
-    return {
-      vanNo: data.vanNo, started: true,
-      branch: (state && state.branch) || data.fromBranch,
-      nextBranch: data.nextBranch, status: 'MOVING',
-      elapsedSeconds: state && state.status === 'MOVING' ? (Number(state.elapsedSeconds) || 0) : 0,
-      round: (state && state.round) || 1
-    };
-  }
-  return state;
-}
-
-function applyPendingDriverState() {
-  const pending = pendingDriverOperations();
-  if (!pending.length) return;
-  let state = driverState;
-  pending.forEach(op => { state = optimisticStateForOperation(state, op); });
-  driverState = state;
-  cacheDriverState();
-}
-
-function queueDriverOperation(action, data) {
-  const duplicate = driverOutbox.some(op =>
-    op.action === action &&
-    String(op.vanNo) === String(data.vanNo) &&
-    String((op.data || {}).branch || (op.data || {}).nextBranch || '') ===
-      String(data.branch || data.nextBranch || '')
-  );
-  if (!duplicate) {
-    driverOutbox.push({
-      id: 'driver-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
-      action: action, data: data, vanNo: data.vanNo,
-      createdAt: new Date().toISOString(), attempts: 0
-    });
-    saveDriverOutbox();
-  }
-}
-
-function removeDriverOperation(id) {
-  driverOutbox = driverOutbox.filter(op => op.id !== id);
-  saveDriverOutbox();
-}
-
-function setDriverPendingStatus() {
-  if (pendingDriverOperations().length) {
-    setDriverServerStatus(
-      navigator.onLine === false
-        ? 'Saved on this phone. Waiting for connection…'
-        : 'Saved on this phone. Upload pending…',
-      'pending'
-    );
-  }
-}
-
-async function flushDriverOutbox() {
-  if (driverSyncInFlight || !SCRIPT_URL || !driverOutbox.length) return;
-  if (navigator.onLine === false) {
-    setDriverPendingStatus();
-    return;
-  }
-  driverSyncInFlight = true;
-  try {
-    for (const op of driverOutbox.slice()) {
-      if (String(op.vanNo) !== String(driverVanNo)) continue;
-      try {
-        op.attempts = (op.attempts || 0) + 1;
-        saveDriverOutbox();
-        const res = await apiPost(Object.assign({}, op.data, { clientId: op.id }));
-        if (!res || !res.success) {
-          // This is a real server rejection, not a connection failure.
-          // Remove it so a bad action cannot block all later actions.
-          removeDriverOperation(op.id);
-          await loadDriverState();
-          setDriverServerStatus('Apps Script: ' + ((res && res.error) || 'action rejected'), 'bad');
-          toast((res && res.error) || 'Driver action rejected', 'bad');
-          break;
-        }
-        removeDriverOperation(op.id);
-        if (res.state) {
-          driverState = Object.assign({}, res.state);
-          driverState.started = true;
-          if (op.action === 'driverCheckIn') driverState.status = 'AT_STATION';
-          if (op.action === 'driverCheckOut') driverState.status = 'MOVING';
-          cacheDriverState();
-        }
-        lastConfirmedAt = Date.now();
-        toast(res.message || 'Driver update uploaded', 'ok');
-        setDriverServerStatus(
-          driverState.status === 'MOVING'
-            ? 'Uploaded. Heading to ' + driverState.nextBranch + '.'
-            : 'Uploaded. Hold timer running at ' + driverState.branch + '.',
-          'ok'
-        );
-        renderDriverState();
-      } catch(e) {
-        setDriverPendingStatus();
-        break;
-      }
-    }
-  } finally {
-    driverSyncInFlight = false;
-    if (driverOutbox.length) setDriverPendingStatus();
-  }
-}
+// Offline queue — actions taken with no signal are saved here and pushed to
+// the server the moment we're back online, in the order they happened.
+let offlineQueue = JSON.parse(localStorage.getItem('ncm_offline_queue') || "[]");
+let syncInFlight = false;
 
 function init() {
   document.getElementById('buildTag').textContent = APP_VERSION;
+  renderOfflineBadge();
+  trySyncOfflineQueue();
   const savedVersion = localStorage.getItem('ncm_version');
   if (savedVersion !== APP_VERSION) {
     localStorage.removeItem('ncm_session');
@@ -468,13 +326,22 @@ function init() {
     try {
       const s = JSON.parse(sess);
       currentBranch = s.branch || "";
-      currentRole = String(s.role || "branch").toLowerCase();
+      currentRole = s.role || "branch";
       currentDestinations = s.destinations || [];
       showApp();
       return;
     } catch(e){ localStorage.removeItem('ncm_session'); }
   }
   document.getElementById('loginScreen').classList.remove('hidden');
+  checkServerVersion();
+}
+
+async function checkServerVersion() {
+  try {
+    const res = await apiGet({ action: 'getVersion' });
+    const tag = document.getElementById('buildTag');
+    if (res && res.success && tag) tag.textContent = APP_VERSION + ' · server ' + res.version;
+  } catch(e) {}
 }
 
 function hardReset() {
@@ -495,34 +362,93 @@ function saveUrl() {
 }
 
 async function apiGet(params) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
-  let res;
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 8000);
   try {
-    res = await fetch(SCRIPT_URL + "?" + new URLSearchParams(params), { signal: controller.signal });
-  } finally {
-    clearTimeout(timeout);
-  }
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  return res.json();
+    const res = await fetch(SCRIPT_URL + "?" + new URLSearchParams(params), { signal: ctrl.signal });
+    return res.json();
+  } finally { clearTimeout(tid); }
 }
 async function apiPost(body) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
-  let res;
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 10000);
   try {
-    res = await fetch(SCRIPT_URL, {
+    const res = await fetch(SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(body),
-      signal: controller.signal
+      signal: ctrl.signal
     });
-  } finally {
-    clearTimeout(timeout);
-  }
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  return res.json();
+    return res.json();
+  } finally { clearTimeout(tid); }
 }
+
+/* ===================== OFFLINE QUEUE ===================== */
+// Any driverCheckIn / driverCheckOut / submitIssue call that fails because
+// there's no signal gets saved here instead of just failing. The screen
+// keeps showing the driver's optimistic state as normal — nothing blocks
+// them from continuing to work with no connection. As soon as the phone
+// gets signal again (the 'online' event, or the next periodic retry), the
+// queue is replayed to Google Sheets in the exact order the actions
+// happened, so check-in/check-out sequencing stays correct.
+
+function saveOfflineQueue() {
+  localStorage.setItem('ncm_offline_queue', JSON.stringify(offlineQueue));
+  renderOfflineBadge();
+}
+
+function queueOfflineAction(body) {
+  offlineQueue.push({ id: Date.now() + '-' + Math.random().toString(36).slice(2), body: body, ts: Date.now() });
+  saveOfflineQueue();
+}
+
+function renderOfflineBadge() {
+  const badge = document.getElementById('offlineBadge');
+  if (!badge) return;
+  const offline = !navigator.onLine;
+  const pending = offlineQueue.length;
+  if (!offline && !pending) { badge.classList.add('hidden'); return; }
+  badge.classList.remove('hidden');
+  badge.textContent = offline
+    ? ('OFFLINE' + (pending ? ' · ' + pending + ' pending' : ''))
+    : ('SYNCING ' + pending + ' pending…');
+}
+
+async function trySyncOfflineQueue() {
+  if (syncInFlight || !navigator.onLine || offlineQueue.length === 0) { renderOfflineBadge(); return; }
+  syncInFlight = true;
+  renderOfflineBadge();
+  try {
+    while (offlineQueue.length > 0) {
+      const item = offlineQueue[0];
+      let res;
+      try {
+        res = await apiPost(item.body);
+      } catch(e) {
+        break; // still can't reach the server — stop, keep the queue, retry later
+      }
+      // Whether the server accepted or rejected it, it's been resolved —
+      // don't retry a rejected action forever (e.g. a stale check-in that
+      // no longer matches server state after other actions synced).
+      offlineQueue.shift();
+      saveOfflineQueue();
+      if (res && res.success) {
+        toast('Synced: ' + (res.message || 'saved'), 'ok');
+      } else if (res) {
+        toast('Sync issue for a queued action: ' + (res.error || 'rejected'), 'warn');
+      }
+    }
+  } finally {
+    syncInFlight = false;
+    renderOfflineBadge();
+    loadDriverState();
+    loadVanBoard();
+  }
+}
+
+window.addEventListener('online', trySyncOfflineQueue);
+window.addEventListener('offline', renderOfflineBadge);
+setInterval(trySyncOfflineQueue, 15000);
 
 async function login() {
   const pc = document.getElementById('passcodeInput').value.trim();
@@ -530,8 +456,8 @@ async function login() {
   try {
     const res = await apiGet({ action: "login", passcode: pc });
     if (res.success) {
-      currentRole = String(res.role || '').toLowerCase();
-      if (currentRole === 'branch') {
+      currentRole = res.role;
+      if (res.role === 'branch') {
         currentBranch = res.branch;
         currentDestinations = res.destinations || [];
       } else {
@@ -675,16 +601,13 @@ function renderVanBoard(vans) {
 /* ===================== DRIVER: VAN NO + CHECK IN/OUT ===================== */
 
 function initDriverView() {
-  restoreDriverStateCache();
   if (driverVanNo) {
     document.getElementById('vanNoCard').classList.add('hidden');
     document.getElementById('driverCard').classList.remove('hidden');
     document.getElementById('driverVanLabel').textContent = driverVanNo;
   }
-  if (driverState) renderDriverState();
   loadDestinationConfig();
   startDriverPolling();
-  flushDriverOutbox();
 }
 
 function confirmVanNo() {
@@ -710,20 +633,13 @@ function startDriverPolling() {
   if (!driverVanNo) return;
   loadDriverState();
   if (driverPollInterval) clearInterval(driverPollInterval);
-  driverPollInterval = setInterval(loadDriverState, 5000);
+  driverPollInterval = setInterval(loadDriverState, 10000);
   if (driverTickInterval) clearInterval(driverTickInterval);
   driverTickInterval = setInterval(tickDriverClock, 1000);
 }
 
 async function loadDriverState() {
   if (!driverVanNo) return false;
-  if (pendingDriverOperations().length) {
-    applyPendingDriverState();
-    renderDriverState();
-    setDriverPendingStatus();
-    flushDriverOutbox();
-    return true;
-  }
   try {
     const res = await apiGet({ action: 'getDriverState', vanNo: driverVanNo });
     if (res && res.success && res.state) {
@@ -731,7 +647,6 @@ async function loadDriverState() {
       const looksLikeDowngrade = driverState && driverState.started && !res.state.started;
       if (recentlyConfirmed && looksLikeDowngrade) return true;
       driverState = res.state;
-      cacheDriverState();
       renderDriverState();
       return true;
     }
@@ -752,45 +667,32 @@ function setDriverServerStatus(message, kind) {
   el.className = 'route-server-status' + (kind ? ' ' + kind : '');
 }
 
-function renderBranchPickGrid(options, onPick, lockUntilPick) {
+function renderBranchPickGrid(options, onPick) {
   const grid = document.getElementById('branchPickGrid');
-  checkoutOptions = options.slice();
   grid.innerHTML = options.map(b =>
     '<button type="button" class="branch-card" data-b="' + escapeHtml(b) + '">' + escapeHtml(b) + '</button>'
   ).join('');
   grid.querySelectorAll('.branch-card').forEach(btn => {
-    let handled = false;
-    const chooseBranch = (event) => {
-      // A fresh checkout screen must always accept the first tap. The
-      // disabled property below prevents a second tap while saving.
-      if (handled || btn.disabled) return;
-      handled = true;
-      if (event && event.type === 'touchend' && event.cancelable) event.preventDefault();
-      if (lockUntilPick) checkoutInFlight = true;
+    btn.onclick = () => {
       // Instant visual lock-in the moment they tap, before the network call
       // even starts — this is what makes the flow feel immediate.
       grid.querySelectorAll('.branch-card').forEach(b => b.disabled = true);
       btn.classList.add('picked');
       onPick(btn.dataset.b);
     };
-    btn.addEventListener('click', chooseBranch);
-    btn.addEventListener('touchend', chooseBranch, { passive: false });
   });
 }
 
 function renderInitialBranchPick() {
-  pickingNextBranch = false;
-  checkoutOptions = [];
   document.getElementById('branchPickPrompt').textContent = "Select the branch you're at:";
   document.getElementById('branchPickBox').classList.remove('hidden');
   document.getElementById('driverStateBox').classList.add('hidden');
-  renderBranchPickGrid(mainBranches, (b) => driverDoCheckIn(b), false);
+  renderBranchPickGrid(mainBranches, (b) => driverDoCheckIn(b));
 }
 
 async function renderNextBranchPick() {
   pickingNextBranch = true;
-  checkoutInFlight = false;
-  document.getElementById('branchPickPrompt').textContent = "🚐 Where are you heading next? Choose one branch.";
+  document.getElementById('branchPickPrompt').textContent = "🚐 Where are you heading next?";
   document.getElementById('branchPickBox').classList.remove('hidden');
   document.getElementById('branchPickGrid').innerHTML = '<div style="font-size:12px;color:#94a3b8;grid-column:1/-1;padding:8px;text-align:center">Loading options…</div>';
   let options = mainBranches;
@@ -798,7 +700,7 @@ async function renderNextBranchPick() {
     const res = await apiGet({ action: 'getDestinations', branch: driverState.branch });
     if (res.success && res.destinations && res.destinations.length) options = res.destinations;
   } catch(e) {}
-  renderBranchPickGrid(options, (b) => driverDoCheckOut(b), true);
+  renderBranchPickGrid(options, (b) => driverDoCheckOut(b));
 }
 
 function renderDriverState() {
@@ -823,13 +725,8 @@ function renderDriverState() {
   const status = normalizedDriverStatus(driverState);
 
   if (status === 'AT_STATION') {
-    // Keep the checkout choices open during polling. A background refresh
-    // must not remove the buttons before the driver taps one.
-    if (pickingNextBranch) {
-      pickBox.classList.remove('hidden');
-    } else {
-      pickBox.classList.add('hidden');
-    }
+    pickBox.classList.add('hidden');
+    pickingNextBranch = false;
     box.classList.remove('hidden');
     box.className = 'route-state';
     title.textContent = 'At ' + driverState.branch;
@@ -889,50 +786,106 @@ function driverCheckIn() {
 
 function driverCheckOutStart() {
   if (!driverState || normalizedDriverStatus(driverState) !== 'AT_STATION') return;
-  checkoutInFlight = false;
   renderNextBranchPick();
 }
 
 async function driverDoCheckIn(branch) {
   const previous = driverState;
   driverState = { vanNo: driverVanNo, started: true, branch: branch, nextBranch: null, status: 'AT_STATION', elapsedSeconds: 0, round: (previous && previous.round) || 1 };
-  cacheDriverState();
-  queueDriverOperation('driverCheckIn', { action: 'driverCheckIn', vanNo: driverVanNo, branch: branch });
   document.getElementById('branchPickBox').classList.add('hidden');
   renderDriverState();
-  setDriverServerStatus('Saved on this phone. Upload pending…', 'pending');
-  toast('Check-in saved on phone', 'ok');
-  await flushDriverOutbox();
-  loadVanBoard();
+  const body = { action: 'driverCheckIn', vanNo: driverVanNo, branch: branch };
+
+  if (!navigator.onLine) {
+    queueOfflineAction(body);
+    lastConfirmedAt = Date.now();
+    setDriverServerStatus('No signal — saved on the phone. Will sync at ' + branch + ' once back online.', 'warn');
+    toast('Offline — check-in saved on phone', 'warn');
+    return;
+  }
+
+  setDriverServerStatus('Saving check in to Google Sheets…');
+  try {
+    const res = await apiPost(body);
+    if (!res.success) {
+      driverState = previous;
+      renderDriverState();
+      setDriverServerStatus('Apps Script: ' + (res.error || 'check-in failed') + ' — reverted.', 'bad');
+      return toast(res.error || 'Check-in failed', 'bad');
+    }
+    toast(res.message, 'ok');
+    if (res.state) { driverState = Object.assign({}, res.state); driverState.started = true; driverState.status = 'AT_STATION'; if (!driverState.branch) driverState.branch = branch; }
+    lastConfirmedAt = Date.now();
+    setDriverServerStatus('Saved. Hold timer running at ' + driverState.branch + '.', 'ok');
+    renderDriverState();
+    loadVanBoard();
+  } catch(e) {
+    queueOfflineAction(body);
+    lastConfirmedAt = Date.now();
+    setDriverServerStatus('No signal — saved on the phone. Will sync automatically.', 'warn');
+    toast('Offline — check-in saved on phone', 'warn');
+  }
 }
 
 async function driverDoCheckOut(nextBranch) {
   const previous = driverState;
   const atBranch = driverState.branch;
   driverState = { vanNo: driverVanNo, started: true, branch: atBranch, nextBranch: nextBranch, status: 'MOVING', elapsedSeconds: 0, round: previous.round || 1 };
-  cacheDriverState();
-  queueDriverOperation('driverCheckOut', {
-    action: 'driverCheckOut', vanNo: driverVanNo,
-    fromBranch: atBranch, nextBranch: nextBranch
-  });
   document.getElementById('branchPickBox').classList.add('hidden');
   pickingNextBranch = false;
   renderDriverState();
-  setDriverServerStatus('Saved on this phone. Upload pending…', 'pending');
-  toast('Check-out saved on phone', 'ok');
-  await flushDriverOutbox();
-  loadVanBoard();
+  const body = { action: 'driverCheckOut', vanNo: driverVanNo, nextBranch: nextBranch };
+
+  if (!navigator.onLine) {
+    queueOfflineAction(body);
+    lastConfirmedAt = Date.now();
+    setDriverServerStatus('No signal — saved on the phone. Will sync once back online.', 'warn');
+    toast('Offline — check-out saved on phone', 'warn');
+    return;
+  }
+
+  setDriverServerStatus('Saving check out to Google Sheets…');
+  try {
+    const res = await apiPost(body);
+    if (!res.success) {
+      driverState = previous;
+      renderDriverState();
+      setDriverServerStatus('Apps Script: ' + (res.error || 'check-out failed') + ' — reverted.', 'bad');
+      return toast(res.error || 'Check-out failed', 'bad');
+    }
+    toast(res.message, 'ok');
+    if (res.state) { driverState = Object.assign({}, res.state); driverState.started = true; driverState.status = 'MOVING'; if (!driverState.nextBranch) driverState.nextBranch = nextBranch; }
+    lastConfirmedAt = Date.now();
+    setDriverServerStatus('Saved. Heading to ' + driverState.nextBranch + '.', 'ok');
+    renderDriverState();
+    loadVanBoard();
+  } catch(e) {
+    queueOfflineAction(body);
+    lastConfirmedAt = Date.now();
+    setDriverServerStatus('No signal — saved on the phone. Will sync automatically.', 'warn');
+    toast('Offline — check-out saved on phone', 'warn');
+  }
 }
 
 async function submitDriverIssue() {
   const input = document.getElementById('driverIssueInput');
   const issue = input.value.trim();
   if (!issue) return toast('Write the issue first', 'bad');
+  const body = { action:'submitIssue', issue:issue, role:'driver', vanNo:driverVanNo, reportedBy:'Van ' + driverVanNo };
+  if (!navigator.onLine) {
+    queueOfflineAction(body);
+    input.value = '';
+    return toast('Offline — issue saved on phone, will send once online', 'warn');
+  }
   try {
-    const res = await apiPost({ action:'submitIssue', issue:issue, role:'driver', vanNo:driverVanNo, reportedBy:'Van ' + driverVanNo });
+    const res = await apiPost(body);
     toast(res.message || res.error, res.success ? 'ok' : 'bad');
     if (res.success) input.value = '';
-  } catch(e) { toast('Network error', 'bad'); }
+  } catch(e) {
+    queueOfflineAction(body);
+    input.value = '';
+    toast('Offline — issue saved on phone, will send once online', 'warn');
+  }
 }
 
 /* ===================== BRANCH: INCOMING VANS ===================== */
@@ -1297,17 +1250,6 @@ function toast(msg, type) {
   clearTimeout(t._tm);
   t._tm = setTimeout(() => t.style.display = 'none', 3000);
 }
-
-window.addEventListener('online', () => {
-  toast('Connection restored. Uploading driver updates…', 'ok');
-  flushDriverOutbox();
-});
-window.addEventListener('offline', () => {
-  if (pendingDriverOperations().length) setDriverPendingStatus();
-});
-setInterval(() => {
-  if (driverOutbox.length) flushDriverOutbox();
-}, 5000);
 
 updateLiveClock();
 setInterval(updateLiveClock, 1000);
