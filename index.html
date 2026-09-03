@@ -450,6 +450,26 @@ window.addEventListener('online', trySyncOfflineQueue);
 window.addEventListener('offline', renderOfflineBadge);
 setInterval(trySyncOfflineQueue, 15000);
 
+// Phones frequently pause or throttle timers when the screen locks or the
+// app is backgrounded, and may even reload the page fresh when you return.
+// Whenever the page becomes visible again, force an immediate refresh
+// instead of waiting for a possibly-stalled interval to fire — this is
+// what keeps the app from looking "stuck" after the phone was put away
+// for a minute or two.
+function resyncEverything() {
+  if (!SCRIPT_URL || !currentRole) return;
+  renderOfflineBadge();
+  trySyncOfflineQueue();
+  loadVanBoard();
+  if (currentRole === 'driver' && driverVanNo) loadDriverState();
+  if (currentRole === 'branch' && !document.getElementById('receiveTab').classList.contains('hidden')) {
+    loadIncomingVans();
+  }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) resyncEverything(); });
+window.addEventListener('pageshow', (e) => { if (e.persisted) resyncEverything(); });
+window.addEventListener('focus', resyncEverything);
+
 async function login() {
   const pc = document.getElementById('passcodeInput').value.trim();
   if (!pc) return toast('Enter passcode', 'bad');
@@ -516,8 +536,9 @@ function showApp() {
 
 function showTab(tab) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  if (event && event.target) event.target.classList.add('active');
-  else document.getElementById(tab === 'vans' ? 'allVansNavTab' : tab === 'second' ? 'secondNavTab' : 'mainNavTab').classList.add('active');
+  const targetId = tab === 'vans' ? 'allVansNavTab' : tab === 'second' ? 'secondNavTab' : 'mainNavTab';
+  const targetEl = document.getElementById(targetId);
+  if (targetEl) targetEl.classList.add('active');
 
   document.getElementById('vansTab').classList.toggle('hidden', tab !== 'vans');
   document.getElementById('receiveTab').classList.toggle('hidden', tab !== 'second');
@@ -703,7 +724,24 @@ async function renderNextBranchPick() {
   renderBranchPickGrid(options, (b) => driverDoCheckOut(b));
 }
 
+let driverElapsedAnchorAt = 0;
+let driverElapsedAnchorValue = 0;
+let lastRenderedElapsedInput = null;
+
 function renderDriverState() {
+  // Re-anchor the elapsed-time clock whenever a genuinely new value comes
+  // in (from the server, or a fresh optimistic check-in/check-out) — but
+  // NOT when it's our own tick just writing back its computed value. This
+  // way the on-screen timer is always "real time since the anchor", so a
+  // throttled/delayed tick (phone backgrounded, screen locked) can never
+  // cause it to drift or freeze — the next tick just jumps to the correct
+  // value instead of compounding a missed +1.
+  if (driverState && driverState.started && driverState.elapsedSeconds !== lastRenderedElapsedInput) {
+    driverElapsedAnchorAt = Date.now();
+    driverElapsedAnchorValue = Number(driverState.elapsedSeconds) || 0;
+    lastRenderedElapsedInput = driverState.elapsedSeconds;
+  }
+
   const box = document.getElementById('driverStateBox');
   const pickBox = document.getElementById('branchPickBox');
   const title = document.getElementById('driverStateTitle');
@@ -766,7 +804,9 @@ function renderDriverState() {
 
 function tickDriverClock() {
   if (driverState && driverState.started) {
-    driverState.elapsedSeconds = (Number(driverState.elapsedSeconds) || 0) + 1;
+    const computed = driverElapsedAnchorValue + Math.floor((Date.now() - driverElapsedAnchorAt) / 1000);
+    driverState.elapsedSeconds = computed;
+    lastRenderedElapsedInput = computed; // this tick's own write shouldn't re-anchor itself
     renderDriverState();
   }
 }
