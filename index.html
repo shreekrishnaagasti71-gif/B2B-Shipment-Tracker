@@ -573,7 +573,7 @@ function setDriverServerStatus(message, kind) {
   el.className = 'route-server-status' + (kind ? ' ' + kind : '');
 }
 
-function renderBranchPickGrid(options, onPick) {
+function renderBranchPickGrid(options, onPick, lockUntilPick) {
   const grid = document.getElementById('branchPickGrid');
   checkoutOptions = options.slice();
   grid.innerHTML = options.map(b =>
@@ -581,8 +581,10 @@ function renderBranchPickGrid(options, onPick) {
   ).join('');
   grid.querySelectorAll('.branch-card').forEach(btn => {
     btn.onclick = () => {
-      if (checkoutInFlight) return;
-      checkoutInFlight = true;
+      if (lockUntilPick) {
+        if (checkoutInFlight) return;
+        checkoutInFlight = true;
+      }
       // Instant visual lock-in the moment they tap, before the network call
       // even starts — this is what makes the flow feel immediate.
       grid.querySelectorAll('.branch-card').forEach(b => b.disabled = true);
@@ -598,7 +600,7 @@ function renderInitialBranchPick() {
   document.getElementById('branchPickPrompt').textContent = "Select the branch you're at:";
   document.getElementById('branchPickBox').classList.remove('hidden');
   document.getElementById('driverStateBox').classList.add('hidden');
-  renderBranchPickGrid(mainBranches, (b) => driverDoCheckIn(b));
+  renderBranchPickGrid(mainBranches, (b) => driverDoCheckIn(b), false);
 }
 
 async function renderNextBranchPick() {
@@ -611,7 +613,7 @@ async function renderNextBranchPick() {
     const res = await apiGet({ action: 'getDestinations', branch: driverState.branch });
     if (res.success && res.destinations && res.destinations.length) options = res.destinations;
   } catch(e) {}
-  renderBranchPickGrid(options, (b) => driverDoCheckOut(b));
+  renderBranchPickGrid(options, (b) => driverDoCheckOut(b), true);
 }
 
 function renderDriverState() {
@@ -746,7 +748,7 @@ async function driverDoCheckOut(nextBranch) {
       checkoutInFlight = false;
       pickingNextBranch = true;
       renderDriverState();
-      renderBranchPickGrid(checkoutOptions, (b) => driverDoCheckOut(b));
+      renderBranchPickGrid(checkoutOptions, (b) => driverDoCheckOut(b), true);
       setDriverServerStatus('Apps Script: ' + (res.error || 'check-out failed') + ' — reverted.', 'bad');
       return toast(res.error || 'Check-out failed', 'bad');
     }
@@ -761,7 +763,7 @@ async function driverDoCheckOut(nextBranch) {
     checkoutInFlight = false;
     pickingNextBranch = true;
     renderDriverState();
-    renderBranchPickGrid(checkoutOptions, (b) => driverDoCheckOut(b));
+    renderBranchPickGrid(checkoutOptions, (b) => driverDoCheckOut(b), true);
     setDriverServerStatus('Network error — will retry automatically.', 'bad');
     toast('Network error', 'warn');
   }
