@@ -511,6 +511,10 @@ function handleDriverCheckOut(data) {
     if (!state.started) return { success:false, error:"Check in first" };
     if (state.status === "MOVING") return { success:false, error:"Already heading to " + state.nextBranch };
     if (state.status !== "AT_STATION") return { success:false, error:"Van is not at a station" };
+    var allowedDestinations = DESTINATIONS[String(state.branch || "").toUpperCase().trim()] || [];
+    if (allowedDestinations.indexOf(nextBranch) === -1) {
+      return { success:false, error:"Choose a branch from the list" };
+    }
 
     var now = new Date();
     var sheet = getMovementSheet();
