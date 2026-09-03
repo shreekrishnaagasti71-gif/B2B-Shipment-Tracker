@@ -300,6 +300,8 @@ let driverPollInterval = null;
 let driverTickInterval = null;
 let mainBranches = ["TINKUNE","CHABAHIL","NAYA BUSPARK","KALANKI","SATDOBATO","NEWROAD"];
 let pickingNextBranch = false;
+let checkoutOptions = [];
+let checkoutInFlight = false;
 
 function init() {
   document.getElementById('buildTag').textContent = APP_VERSION;
@@ -575,11 +577,14 @@ function setDriverServerStatus(message, kind) {
 
 function renderBranchPickGrid(options, onPick) {
   const grid = document.getElementById('branchPickGrid');
+  checkoutOptions = options.slice();
   grid.innerHTML = options.map(b =>
     '<button type="button" class="branch-card" data-b="' + escapeHtml(b) + '">' + escapeHtml(b) + '</button>'
   ).join('');
   grid.querySelectorAll('.branch-card').forEach(btn => {
     btn.onclick = () => {
+      if (checkoutInFlight) return;
+      checkoutInFlight = true;
       // Instant visual lock-in the moment they tap, before the network call
       // even starts — this is what makes the flow feel immediate.
       grid.querySelectorAll('.branch-card').forEach(b => b.disabled = true);
@@ -590,6 +595,8 @@ function renderBranchPickGrid(options, onPick) {
 }
 
 function renderInitialBranchPick() {
+  pickingNextBranch = false;
+  checkoutOptions = [];
   document.getElementById('branchPickPrompt').textContent = "Select the branch you're at:";
   document.getElementById('branchPickBox').classList.remove('hidden');
   document.getElementById('driverStateBox').classList.add('hidden');
@@ -598,7 +605,7 @@ function renderInitialBranchPick() {
 
 async function renderNextBranchPick() {
   pickingNextBranch = true;
-  document.getElementById('branchPickPrompt').textContent = "🚐 Where are you heading next?";
+  document.getElementById('branchPickPrompt').textContent = "🚐 Where are you heading next? Choose one branch.";
   document.getElementById('branchPickBox').classList.remove('hidden');
   document.getElementById('branchPickGrid').innerHTML = '<div style="font-size:12px;color:#94a3b8;grid-column:1/-1;padding:8px;text-align:center">Loading options…</div>';
   let options = mainBranches;
@@ -631,8 +638,13 @@ function renderDriverState() {
   const status = normalizedDriverStatus(driverState);
 
   if (status === 'AT_STATION') {
-    pickBox.classList.add('hidden');
-    pickingNextBranch = false;
+    // Keep the checkout choices open during polling. A background refresh
+    // must not remove the buttons before the driver taps one.
+    if (pickingNextBranch) {
+      pickBox.classList.remove('hidden');
+    } else {
+      pickBox.classList.add('hidden');
+    }
     box.classList.remove('hidden');
     box.className = 'route-state';
     title.textContent = 'At ' + driverState.branch;
@@ -733,7 +745,10 @@ async function driverDoCheckOut(nextBranch) {
     const res = await apiPost({ action: 'driverCheckOut', vanNo: driverVanNo, nextBranch: nextBranch });
     if (!res.success) {
       driverState = previous;
+      checkoutInFlight = false;
+      pickingNextBranch = true;
       renderDriverState();
+      renderBranchPickGrid(checkoutOptions, (b) => driverDoCheckOut(b));
       setDriverServerStatus('Apps Script: ' + (res.error || 'check-out failed') + ' — reverted.', 'bad');
       return toast(res.error || 'Check-out failed', 'bad');
     }
@@ -744,6 +759,11 @@ async function driverDoCheckOut(nextBranch) {
     renderDriverState();
     loadVanBoard();
   } catch(e) {
+    driverState = previous;
+    checkoutInFlight = false;
+    pickingNextBranch = true;
+    renderDriverState();
+    renderBranchPickGrid(checkoutOptions, (b) => driverDoCheckOut(b));
     setDriverServerStatus('Network error — will retry automatically.', 'bad');
     toast('Network error', 'warn');
   }
