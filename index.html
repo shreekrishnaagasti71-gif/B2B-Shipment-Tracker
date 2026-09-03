@@ -140,11 +140,6 @@ input[readonly],input:disabled{background:#f8fafc;color:#2563eb;font-weight:700;
       <div class="nav-tab" id="allVansNavTab" onclick="showTab('vans')">All Vans</div>
     </div>
 
-    <!-- ============ BRANCH VIEW (unchanged) ============ -->
-        <button class="btn btn-red mt-10" onclick="sendShipments()">SEND ALL (<span id="sendCount">0</span>)</button>
-      </div>
-    </div>
-
     <div id="receiveTab" class="hidden">
         <div class="card">
           <h4>Receive Shipments</h4>
@@ -207,7 +202,10 @@ input[readonly],input:disabled{background:#f8fafc;color:#2563eb;font-weight:700;
             <textarea id="sendInput" style="position:absolute;opacity:0;height:0;width:0;left:0;top:0" oninput="handleSendInput(this)" onkeydown="sendKey(event)" onpaste="sendPaste(event)"></textarea>
           </div>
           <button class="scan-big" onclick="openCamera('send')">📷 Scan Barcodes</button>
+          <button class="btn btn-red mt-10" onclick="sendShipments()">SEND ALL (<span id="sendCount">0</span>)</button>
         </div>
+      </div>
+    </div>
 
     <!-- ============ DRIVER VIEW (free check-in/check-out + rounds) ============ -->
     <div id="driverViewRoot" class="hidden">
@@ -319,7 +317,7 @@ function init() {
     try {
       const s = JSON.parse(sess);
       currentBranch = s.branch || "";
-      currentRole = s.role || "branch";
+      currentRole = String(s.role || "branch").toLowerCase();
       currentDestinations = s.destinations || [];
       showApp();
       return;
@@ -364,8 +362,8 @@ async function login() {
   try {
     const res = await apiGet({ action: "login", passcode: pc });
     if (res.success) {
-      currentRole = res.role;
-      if (res.role === 'branch') {
+      currentRole = String(res.role || '').toLowerCase();
+      if (currentRole === 'branch') {
         currentBranch = res.branch;
         currentDestinations = res.destinations || [];
       } else {
